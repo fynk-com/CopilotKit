@@ -7,8 +7,6 @@ import { CopilotKitCoreVue } from "../lib/vue-core";
 import { CopilotKitKey } from "./keys";
 import type { CopilotKitProviderProps } from "./CopilotKitProvider.types";
 import type {
-  VueActivityMessageRenderer,
-  VueCustomMessageRenderer,
   VueFrontendTool,
   VueHumanInTheLoop,
   VueToolCallRenderer,
@@ -17,12 +15,6 @@ import type {
 const HEADER_NAME = "X-CopilotCloud-Public-Api-Key";
 const COPILOT_CLOUD_CHAT_URL = "https://api.cloud.copilotkit.ai/copilotkit/v1";
 
-const RENDER_TOOL_CALLS_STABLE_WARNING =
-  "renderToolCalls must be a stable array. If you want to dynamically add or remove tools, use `useFrontendTool` instead.";
-const RENDER_CUSTOM_MESSAGES_STABLE_WARNING =
-  "renderCustomMessages must be a stable array.";
-const RENDER_ACTIVITY_MESSAGES_STABLE_WARNING =
-  "renderActivityMessages must be a stable array.";
 const FRONTEND_TOOLS_STABLE_WARNING =
   "frontendTools must be a stable array. If you want to dynamically add or remove tools, use `useFrontendTool` instead.";
 const HUMAN_IN_THE_LOOP_STABLE_WARNING =
@@ -36,9 +28,6 @@ const props = withDefaults(
     agents__unsafe_dev_only: () => ({}),
     frontendTools: () => [],
     humanInTheLoop: () => [],
-    renderToolCalls: () => [],
-    renderActivityMessages: () => [],
-    renderCustomMessages: () => [],
     showDevConsole: false,
     useSingleEndpoint: false,
   },
@@ -93,48 +82,8 @@ watch(
   { immediate: true },
 );
 
-const initialRenderToolCalls = props.renderToolCalls;
-const initialRenderCustomMessages = props.renderCustomMessages;
-const initialRenderActivityMessages = props.renderActivityMessages;
 const initialFrontendTools = props.frontendTools;
 const initialHumanInTheLoop = props.humanInTheLoop;
-
-const renderToolCallKey = (renderer?: VueToolCallRenderer<unknown>) =>
-  `${renderer?.agentId ?? ""}:${renderer?.name ?? ""}`;
-
-const hasRenderToolCallShapeChanged = (
-  initial: VueToolCallRenderer<unknown>[],
-  next: VueToolCallRenderer<unknown>[],
-) => {
-  const initialKeys = new Set(initial.map(renderToolCallKey));
-  const nextKeys = new Set(next.map(renderToolCallKey));
-  if (initialKeys.size !== nextKeys.size) return true;
-  for (const key of initialKeys) {
-    if (!nextKeys.has(key)) return true;
-  }
-  return false;
-};
-
-watch(() => props.renderToolCalls, (next) => {
-  if (
-    next !== initialRenderToolCalls &&
-    hasRenderToolCallShapeChanged(initialRenderToolCalls, next)
-  ) {
-    console.error(RENDER_TOOL_CALLS_STABLE_WARNING);
-  }
-});
-
-watch(() => props.renderCustomMessages, (next) => {
-  if (next !== initialRenderCustomMessages) {
-    console.error(RENDER_CUSTOM_MESSAGES_STABLE_WARNING);
-  }
-});
-
-watch(() => props.renderActivityMessages, (next) => {
-  if (next !== initialRenderActivityMessages) {
-    console.error(RENDER_ACTIVITY_MESSAGES_STABLE_WARNING);
-  }
-});
 
 watch(() => props.frontendTools, (next) => {
   if (next !== initialFrontendTools) {
@@ -221,7 +170,7 @@ const allTools = computed(() => {
 });
 
 const allRenderToolCalls = computed(() => {
-  const combined: VueToolCallRenderer<unknown>[] = [...props.renderToolCalls];
+  const combined: VueToolCallRenderer<unknown>[] = [];
   for (const tool of props.frontendTools) {
     if (tool.render) {
       const args = tool.parameters ?? (tool.name === "*" ? z.any() : undefined);
@@ -248,8 +197,6 @@ const createCopilotKit = () =>
     agents__unsafe_dev_only: props.agents__unsafe_dev_only,
     tools: allTools.value,
     renderToolCalls: allRenderToolCalls.value,
-    renderActivityMessages: props.renderActivityMessages,
-    renderCustomMessages: props.renderCustomMessages,
   });
 
 const copilotkit = shallowRef<CopilotKitCoreVue>(createCopilotKit());
@@ -260,8 +207,6 @@ watch(
   [
     allTools,
     allRenderToolCalls,
-    () => props.renderActivityMessages,
-    () => props.renderCustomMessages,
     () => props.useSingleEndpoint,
   ],
   () => {

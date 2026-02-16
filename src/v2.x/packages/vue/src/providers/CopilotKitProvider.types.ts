@@ -1,10 +1,7 @@
 import type { AbstractAgent } from "@ag-ui/client";
 import type {
-  VueActivityMessageRenderer,
-  VueCustomMessageRenderer,
   VueFrontendTool,
   VueHumanInTheLoop,
-  VueToolCallRenderer,
 } from "../types";
 
 export interface CopilotKitProviderProps {
@@ -16,11 +13,7 @@ export interface CopilotKitProviderProps {
   properties?: Record<string, unknown>;
   useSingleEndpoint?: boolean;
   agents__unsafe_dev_only?: Record<string, AbstractAgent>;
-  renderToolCalls?: VueToolCallRenderer<unknown>[];
-  renderActivityMessages?: VueActivityMessageRenderer<unknown>[];
-  renderCustomMessages?: VueCustomMessageRenderer[];
   frontendTools?: VueFrontendTool[];
   humanInTheLoop?: VueHumanInTheLoop[];
   showDevConsole?: boolean | "auto";
 }
-

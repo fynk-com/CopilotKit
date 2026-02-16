@@ -1,12 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { defineComponent, h } from "vue";
+import { h } from "vue";
 import { z } from "zod";
 import { ToolCallStatus } from "@copilotkitnext/core";
-import type { AbstractAgent } from "@ag-ui/client";
 import { defineToolCallRenderer } from "../defineToolCallRenderer";
 import type { VueToolCallRenderer } from "../vue-tool-call-renderer";
-import { mountWithProvider } from "../../__tests__/utils/mount";
-import { StateCapturingAgent } from "../../__tests__/utils/agents";
 
 describe("defineToolCallRenderer", () => {
   it("defaults wildcard args to z.any and preserves runtime tool name", () => {
@@ -50,36 +47,6 @@ describe("defineToolCallRenderer", () => {
     expect(renderers).toHaveLength(2);
     expect(renderers[0]?.name).toBe("*");
     expect(renderers[1]?.name).toBe("get_weather");
-  });
-
-  it("works with provider renderToolCalls when mixed renderers are passed", () => {
-    const wildcardRenderer = defineToolCallRenderer({
-      name: "*",
-      render: ({ name }) => h("div", { "data-testid": "wildcard" }, `fallback:${name}`),
-    });
-    const weatherRenderer = defineToolCallRenderer({
-      name: "get_weather",
-      args: z.object({ location: z.string() }),
-      render: ({ args }) => h("div", { "data-testid": "weather" }, `weather:${args.location}`),
-    });
-
-    const rendererList = [wildcardRenderer, weatherRenderer];
-    const agent = new StateCapturingAgent([], "test-agent");
-    const TestApp = defineComponent({
-      setup() {
-        return () => h("div", { "data-testid": "app" }, "ok");
-      },
-    });
-
-    const { wrapper } = mountWithProvider(
-      () => h(TestApp),
-      {
-        agents__unsafe_dev_only: { "test-agent": agent as unknown as AbstractAgent },
-        renderToolCalls: rendererList,
-      },
-    );
-
-    expect(wrapper.find("[data-testid=app]").exists()).toBe(true);
   });
 
   it("infers typed args shape for specific tools", () => {

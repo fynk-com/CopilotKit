@@ -20,9 +20,9 @@ This file defines how agents should keep `@copilotkitnext/vue` aligned with upst
 
 ## Package boundary rules
 
-- `@copilotkitnext/vue` is core and UI-agnostic.
-- Chat UI/component parity belongs in a separate `@copilotkitnext/vue-ui` scope.
-- Do not pull chat-specific rendering/component concerns into the core Vue package.
+- `@copilotkitnext/vue` follows the same single-package direction as `@copilotkitnext/react`.
+- Core hooks/providers/types and UI-facing rendering primitives should live in this package.
+- Keep scope aligned with React's package surface; avoid introducing a parallel `vue-ui` package split.
 
 ## API compatibility policy
 
@@ -43,6 +43,10 @@ This file defines how agents should keep `@copilotkitnext/vue` aligned with upst
   - use Vue `WatchSource`-based dependencies to mirror React deps behavior.
 - Tool rendering:
   - preserve wildcard/specific/agent-scoped semantics from React.
+- Chat render parity contract:
+  - follow the architectural decision in `src/v2.x/packages/vue/README.md` section `Architectural Decision: Render APIs -> Slots`;
+  - translate React render props/hooks into Vue named/scoped slots deterministically;
+  - do not re-introduce provider-level `render*` props in Vue unless the ADR is explicitly changed.
 
 ## Testing parity strategy
 
@@ -79,7 +83,8 @@ When touching package integration/build behavior, also run:
 When React changes:
 
 1. Identify impacted React hooks/providers/types and tests.
-2. Port behavior to Vue with minimal API drift.
-3. Port/add equivalent Vue tests for the changed behavior.
-4. Run validation gates.
-5. If divergence remains, document the reason and keep it explicit and minimal.
+2. Apply the README slot-translation ADR for any render-hook/render-prop related changes.
+3. Port behavior to Vue with minimal API drift.
+4. Port/add equivalent Vue tests for the changed behavior.
+5. Run validation gates.
+6. If divergence remains, document the reason and keep it explicit and minimal.

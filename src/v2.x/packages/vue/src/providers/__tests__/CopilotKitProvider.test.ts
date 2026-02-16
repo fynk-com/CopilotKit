@@ -11,7 +11,6 @@ import CopilotKitProvider from "../CopilotKitProvider.vue";
 import { useCopilotKit } from "../useCopilotKit";
 import type { VueFrontendTool } from "../../types";
 import type { VueHumanInTheLoop } from "../../types";
-import type { VueToolCallRenderer } from "../../types";
 import { mountWithProvider } from "../../__tests__/utils/mount";
 import { StateCapturingAgent } from "../../__tests__/utils/agents";
 
@@ -236,63 +235,6 @@ describe("CopilotKitProvider", () => {
   });
 
   describe("Prop updates after mount", () => {
-    it("applies updated renderToolCalls closures when shape stays the same", async () => {
-      const RenderV1 = defineComponent({
-        setup() {
-          return () => h("div", "V1");
-        },
-      });
-      const RenderV2 = defineComponent({
-        setup() {
-          return () => h("div", "V2");
-        },
-      });
-      const argsSchema = z.object({ value: z.string() });
-      let coreRef: CopilotKitCoreContextValue | null = null;
-
-      const Probe = defineComponent({
-        setup() {
-          const { copilotkit } = useCopilotKit();
-          watchEffect(() => {
-            coreRef = copilotkit.value;
-          });
-          return () => null;
-        },
-      });
-
-      const wrapper = mount(CopilotKitProvider, {
-        props: {
-          runtimeUrl: "/api/copilotkit",
-          renderToolCalls: [
-            { name: "shape-stable", args: argsSchema, render: RenderV1 },
-          ] as VueToolCallRenderer<unknown>[],
-        },
-        slots: {
-          default: () => h(Probe),
-        },
-      });
-
-      await nextTick();
-      const initialCore = coreRef;
-      const initialRender = coreRef?.renderToolCalls.find((rc) => rc.name === "shape-stable");
-      expect(initialRender?.render).toStrictEqual(RenderV1);
-
-      await wrapper.setProps({
-        renderToolCalls: [
-          { name: "shape-stable", args: argsSchema, render: RenderV2 },
-        ] as VueToolCallRenderer<unknown>[],
-      });
-      await nextTick();
-
-      expect(coreRef).toBeTruthy();
-      expect(coreRef).not.toBe(initialCore);
-      const updatedRender = coreRef?.renderToolCalls.find((rc) => rc.name === "shape-stable");
-      expect(updatedRender?.render).toStrictEqual(RenderV2);
-      expect(consoleErrorSpy).not.toHaveBeenCalledWith(
-        expect.stringContaining("renderToolCalls must be a stable array"),
-      );
-    });
-
     it("applies frontendTools updates even when stable-array warning is emitted", async () => {
       const initialTools: VueFrontendTool[] = [
         { name: "tool1", description: "Tool 1", handler: vi.fn() },
@@ -479,11 +421,6 @@ describe("CopilotKitProvider", () => {
           return () => h("div", "Test2");
         },
       });
-      const TestComponent3 = defineComponent({
-        setup() {
-          return () => h("div", "Test3");
-        },
-      });
 
       const frontendTools: VueFrontendTool[] = [
         {
@@ -501,18 +438,10 @@ describe("CopilotKitProvider", () => {
           render: TestComponent2,
         },
       ];
-      const renderToolCalls: VueToolCallRenderer<unknown>[] = [
-        {
-          name: "directRenderTool",
-          args: z.object({ c: z.string() }),
-          render: TestComponent3,
-        },
-      ];
 
       const { getCore } = mountWithProvider(() => h("div"), {
         frontendTools,
         humanInTheLoop,
-        renderToolCalls,
       });
 
       const frontendRenderTool = getCore().renderToolCalls.find(
@@ -521,16 +450,11 @@ describe("CopilotKitProvider", () => {
       const humanRenderTool = getCore().renderToolCalls.find(
         (rc) => rc.name === "humanRenderTool",
       );
-      const directRenderTool = getCore().renderToolCalls.find(
-        (rc) => rc.name === "directRenderTool",
-      );
 
       expect(frontendRenderTool).toBeDefined();
       expect(humanRenderTool).toBeDefined();
-      expect(directRenderTool).toBeDefined();
       expect(frontendRenderTool?.render).toStrictEqual(TestComponent1);
       expect(humanRenderTool?.render).toStrictEqual(TestComponent2);
-      expect(directRenderTool?.render).toStrictEqual(TestComponent3);
     });
   });
 

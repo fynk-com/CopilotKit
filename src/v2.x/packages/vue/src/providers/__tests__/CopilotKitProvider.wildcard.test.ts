@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { defineComponent, h } from "vue";
 import { z } from "zod";
-import type { VueFrontendTool, VueHumanInTheLoop, VueToolCallRenderer } from "../../types";
+import type { VueFrontendTool, VueHumanInTheLoop } from "../../types";
 import { mountWithProvider } from "../../__tests__/utils/mount";
 
 describe("CopilotKitProvider wildcard behavior", () => {
@@ -96,28 +96,5 @@ describe("CopilotKitProvider wildcard behavior", () => {
     const wildcardRender = getCore().renderToolCalls.find((rc) => rc.name === "*");
     expect(wildcardRender).toBeDefined();
     expect(wildcardRender?.render).toStrictEqual(WildcardComponent);
-  });
-
-  it("supports wildcard renderToolCalls prop entries with agentId", () => {
-    const WildcardRender = defineComponent({
-      setup() {
-        return () => h("div", "Agent wildcard");
-      },
-    });
-
-    const renderToolCalls: VueToolCallRenderer<unknown>[] = [
-      {
-        name: "*",
-        args: z.object({ toolName: z.string(), args: z.unknown() }),
-        render: WildcardRender,
-        agentId: "agent-1",
-      },
-    ];
-
-    const { getCore } = mountWithProvider(() => h("div"), { renderToolCalls });
-    const wildcardRender = getCore().renderToolCalls.find((rc) => rc.name === "*");
-
-    expect(wildcardRender).toBeDefined();
-    expect(wildcardRender?.agentId).toBe("agent-1");
   });
 });
