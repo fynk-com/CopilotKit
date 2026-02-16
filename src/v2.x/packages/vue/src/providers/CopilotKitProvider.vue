@@ -1,0 +1,338 @@
+<script setup lang="ts">
+import { computed, provide, ref, shallowRef, triggerRef, watch } from "vue";
+import { z } from "zod";
+import type { AbstractAgent } from "@ag-ui/client";
+import { FrontendTool } from "@copilotkitnext/core";
+import { CopilotKitCoreVue } from "../lib/vue-core";
+import { CopilotKitKey } from "./keys";
+import type { CopilotKitProviderProps } from "./CopilotKitProvider.types";
+import type {
+  VueActivityMessageRenderer,
+  VueCustomMessageRenderer,
+  VueFrontendTool,
+  VueHumanInTheLoop,
+  VueToolCallRenderer,
+} from "../types";
+
+const HEADER_NAME = "X-CopilotCloud-Public-Api-Key";
+const COPILOT_CLOUD_CHAT_URL = "https://api.cloud.copilotkit.ai/copilotkit/v1";
+
+const RENDER_TOOL_CALLS_STABLE_WARNING =
+  "renderToolCalls must be a stable array. If you want to dynamically add or remove tools, use `useFrontendTool` instead.";
+const RENDER_CUSTOM_MESSAGES_STABLE_WARNING =
+  "renderCustomMessages must be a stable array.";
+const RENDER_ACTIVITY_MESSAGES_STABLE_WARNING =
+  "renderActivityMessages must be a stable array.";
+const FRONTEND_TOOLS_STABLE_WARNING =
+  "frontendTools must be a stable array. If you want to dynamically add or remove tools, use `useFrontendTool` instead.";
+const HUMAN_IN_THE_LOOP_STABLE_WARNING =
+  "humanInTheLoop must be a stable array. If you want to dynamically add or remove human-in-the-loop tools, use `useHumanInTheLoop` instead.";
+
+const props = withDefaults(
+  defineProps<CopilotKitProviderProps>(),
+  {
+    headers: () => ({}),
+    properties: () => ({}),
+    agents__unsafe_dev_only: () => ({}),
+    frontendTools: () => [],
+    humanInTheLoop: () => [],
+    renderToolCalls: () => [],
+    renderActivityMessages: () => [],
+    renderCustomMessages: () => [],
+    showDevConsole: false,
+    useSingleEndpoint: false,
+  },
+);
+
+const shouldRenderInspector = ref(false);
+const inspectorTag = ref<string>("cpk-web-inspector");
+const isInspectorDefined = ref(false);
+
+const updateInspectorVisibility = () => {
+  if (props.showDevConsole === true) {
+    shouldRenderInspector.value = true;
+    return;
+  }
+  if (props.showDevConsole === "auto") {
+    if (typeof window === "undefined") {
+      shouldRenderInspector.value = false;
+      return;
+    }
+    const localhostHosts = new Set(["localhost", "127.0.0.1"]);
+    shouldRenderInspector.value = localhostHosts.has(window.location.hostname);
+    return;
+  }
+  shouldRenderInspector.value = false;
+};
+
+watch(() => props.showDevConsole, updateInspectorVisibility, { immediate: true });
+
+watch(
+  shouldRenderInspector,
+  (enabled, _old, onCleanup) => {
+    if (!enabled || isInspectorDefined.value || typeof window === "undefined") {
+      return;
+    }
+
+    let mounted = true;
+    void import("@copilotkitnext/web-inspector")
+      .then((mod) => {
+        mod.defineWebInspector?.();
+        if (!mounted) return;
+        inspectorTag.value = mod.WEB_INSPECTOR_TAG;
+        isInspectorDefined.value = true;
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to load CopilotKit inspector:", error);
+      });
+
+    onCleanup(() => {
+      mounted = false;
+    });
+  },
+  { immediate: true },
+);
+
+const initialRenderToolCalls = props.renderToolCalls;
+const initialRenderCustomMessages = props.renderCustomMessages;
+const initialRenderActivityMessages = props.renderActivityMessages;
+const initialFrontendTools = props.frontendTools;
+const initialHumanInTheLoop = props.humanInTheLoop;
+
+const renderToolCallKey = (renderer?: VueToolCallRenderer<unknown>) =>
+  `${renderer?.agentId ?? ""}:${renderer?.name ?? ""}`;
+
+const hasRenderToolCallShapeChanged = (
+  initial: VueToolCallRenderer<unknown>[],
+  next: VueToolCallRenderer<unknown>[],
+) => {
+  const initialKeys = new Set(initial.map(renderToolCallKey));
+  const nextKeys = new Set(next.map(renderToolCallKey));
+  if (initialKeys.size !== nextKeys.size) return true;
+  for (const key of initialKeys) {
+    if (!nextKeys.has(key)) return true;
+  }
+  return false;
+};
+
+watch(() => props.renderToolCalls, (next) => {
+  if (
+    next !== initialRenderToolCalls &&
+    hasRenderToolCallShapeChanged(initialRenderToolCalls, next)
+  ) {
+    console.error(RENDER_TOOL_CALLS_STABLE_WARNING);
+  }
+});
+
+watch(() => props.renderCustomMessages, (next) => {
+  if (next !== initialRenderCustomMessages) {
+    console.error(RENDER_CUSTOM_MESSAGES_STABLE_WARNING);
+  }
+});
+
+watch(() => props.renderActivityMessages, (next) => {
+  if (next !== initialRenderActivityMessages) {
+    console.error(RENDER_ACTIVITY_MESSAGES_STABLE_WARNING);
+  }
+});
+
+watch(() => props.frontendTools, (next) => {
+  if (next !== initialFrontendTools) {
+    console.error(FRONTEND_TOOLS_STABLE_WARNING);
+  }
+});
+
+watch(() => props.humanInTheLoop, (next) => {
+  if (next !== initialHumanInTheLoop) {
+    console.error(HUMAN_IN_THE_LOOP_STABLE_WARNING);
+  }
+});
+
+const resolvedPublicKey = computed(
+  () => props.publicApiKey ?? props.publicLicenseKey,
+);
+const hasLocalAgents = computed(
+  () => props.agents__unsafe_dev_only && Object.keys(props.agents__unsafe_dev_only).length > 0,
+);
+
+const mergedHeaders = computed(() => {
+  if (!resolvedPublicKey.value) return props.headers;
+  if (props.headers[HEADER_NAME]) return props.headers;
+  return { ...props.headers, [HEADER_NAME]: resolvedPublicKey.value };
+});
+
+const chatApiEndpoint = computed(
+  () =>
+    props.runtimeUrl ??
+    (resolvedPublicKey.value ? COPILOT_CLOUD_CHAT_URL : undefined),
+);
+
+watch(
+  [chatApiEndpoint, resolvedPublicKey, hasLocalAgents],
+  ([endpoint, publicKey, localAgents]) => {
+    if (endpoint || publicKey || localAgents) return;
+    const msg =
+      "Missing required prop: 'runtimeUrl' or 'publicApiKey' or 'publicLicenseKey'";
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(msg);
+    }
+    console.warn(msg);
+  },
+  { immediate: true },
+);
+
+const processedHumanInTheLoop = computed(() => {
+  const tools: FrontendTool[] = [];
+  const renderToolCalls: VueToolCallRenderer<unknown>[] = [];
+
+  for (const tool of props.humanInTheLoop) {
+    tools.push({
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters,
+      followUp: tool.followUp,
+      ...(tool.agentId && { agentId: tool.agentId }),
+      handler: async () => {
+        console.warn(
+          `Human-in-the-loop tool '${tool.name}' called but no interactive handler is set up.`,
+        );
+        return undefined;
+      },
+    });
+    if (tool.render) {
+      renderToolCalls.push({
+        name: tool.name,
+        args: tool.parameters ?? z.any(),
+        render: tool.render,
+        ...(tool.agentId && { agentId: tool.agentId }),
+      } as VueToolCallRenderer<unknown>);
+    }
+  }
+  return { tools, renderToolCalls };
+});
+
+const allTools = computed(() => {
+  const tools: FrontendTool[] = [];
+  for (const t of props.frontendTools) {
+    tools.push(t as FrontendTool);
+  }
+  tools.push(...processedHumanInTheLoop.value.tools);
+  return tools;
+});
+
+const allRenderToolCalls = computed(() => {
+  const combined: VueToolCallRenderer<unknown>[] = [...props.renderToolCalls];
+  for (const tool of props.frontendTools) {
+    if (tool.render) {
+      const args = tool.parameters ?? (tool.name === "*" ? z.any() : undefined);
+      if (args) {
+        combined.push({
+          name: tool.name,
+          args,
+          render: tool.render,
+        } as VueToolCallRenderer<unknown>);
+      }
+    }
+  }
+  combined.push(...processedHumanInTheLoop.value.renderToolCalls);
+  return combined;
+});
+
+const createCopilotKit = () =>
+  new CopilotKitCoreVue({
+    runtimeUrl: chatApiEndpoint.value,
+    runtimeTransport: props.useSingleEndpoint ? "single" : "rest",
+    headers: mergedHeaders.value,
+    credentials: props.credentials,
+    properties: props.properties,
+    agents__unsafe_dev_only: props.agents__unsafe_dev_only,
+    tools: allTools.value,
+    renderToolCalls: allRenderToolCalls.value,
+    renderActivityMessages: props.renderActivityMessages,
+    renderCustomMessages: props.renderCustomMessages,
+  });
+
+const copilotkit = shallowRef<CopilotKitCoreVue>(createCopilotKit());
+
+const executingToolCallIds = ref<ReadonlySet<string>>(new Set());
+
+watch(
+  [
+    allTools,
+    allRenderToolCalls,
+    () => props.renderActivityMessages,
+    () => props.renderCustomMessages,
+    () => props.useSingleEndpoint,
+  ],
+  () => {
+    copilotkit.value = createCopilotKit();
+    executingToolCallIds.value = new Set();
+  },
+);
+
+watch(
+  copilotkit,
+  (core, _, onCleanup) => {
+    const sub1 = core.subscribe({
+      onToolExecutionStart: ({ toolCallId }) => {
+        executingToolCallIds.value = new Set(executingToolCallIds.value).add(
+          toolCallId,
+        );
+      },
+      onToolExecutionEnd: ({ toolCallId }) => {
+        const next = new Set(executingToolCallIds.value);
+        next.delete(toolCallId);
+        executingToolCallIds.value = next;
+      },
+    });
+    const sub2 = core.subscribe({
+      onRenderToolCallsChanged: () => {
+        triggerRef(copilotkit);
+      },
+    });
+    const sub3 = core.subscribe({
+      onRuntimeConnectionStatusChanged: () => {
+        triggerRef(copilotkit);
+      },
+    });
+    onCleanup(() => {
+      sub1.unsubscribe();
+      sub2.unsubscribe();
+      sub3.unsubscribe();
+    });
+  },
+  { immediate: true },
+);
+
+watch(
+  [
+    () => chatApiEndpoint.value,
+    () => mergedHeaders.value,
+    () => props.credentials,
+    () => props.properties,
+    () => props.agents__unsafe_dev_only,
+    () => props.useSingleEndpoint,
+  ],
+  () => {
+    copilotkit.value.setRuntimeUrl(chatApiEndpoint.value);
+    copilotkit.value.setRuntimeTransport(
+      props.useSingleEndpoint ? "single" : "rest",
+    );
+    copilotkit.value.setHeaders(mergedHeaders.value);
+    copilotkit.value.setCredentials(props.credentials);
+    copilotkit.value.setProperties(props.properties);
+    copilotkit.value.setAgents__unsafe_dev_only(props.agents__unsafe_dev_only ?? {});
+  },
+);
+
+provide(CopilotKitKey, { copilotkit, executingToolCallIds });
+</script>
+
+<template>
+  <slot />
+  <component
+    :is="inspectorTag"
+    v-if="shouldRenderInspector && isInspectorDefined"
+    :core.prop="copilotkit"
+  />
+</template>
