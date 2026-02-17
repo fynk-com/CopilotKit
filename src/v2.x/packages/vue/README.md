@@ -77,6 +77,12 @@ Supported tool-level slots:
 - **Components**: `CopilotChatMessageView`, `CopilotChatToolCallsView`, `MCPAppsActivityRenderer`
 - **Core**: `CopilotKitCoreVue`
 
+## Icon Foundation (Internal)
+
+- Chat/UI components should import icons from `src/components/icons/index.ts`.
+- Do not import from `lucide-vue-next` directly in Vue package components.
+- This adapter is internal and intentionally not exported from the package root.
+
 ## React Parity Notes
 
 The package follows the same single-package strategy as `@copilotkitnext/react`, with semantic parity for tool/activity/custom message rendering.

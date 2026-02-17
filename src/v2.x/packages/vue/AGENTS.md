@@ -64,6 +64,7 @@ This file defines how agents should keep `@copilotkitnext/vue` aligned with upst
 - Keep shared dependency versions aligned with sibling packages (`core`, `react`, `angular`) unless an intentional repo-wide upgrade occurs.
 - Avoid introducing dynamic type-import workarounds when a direct typed import pattern used by React is available.
 - For web inspector behavior, mirror React's runtime loading strategy and use test-time mocks in Vue tests.
+- For icons, import only from `src/components/icons/index.ts` and do not import from `lucide-vue-next` directly in feature components.
 
 ## Validation gates (required)
 

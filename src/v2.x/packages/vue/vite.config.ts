@@ -24,6 +24,7 @@ export default defineConfig({
         "@copilotkitnext/core",
         "@copilotkitnext/shared",
         "@copilotkitnext/web-inspector",
+        "lucide-vue-next",
         "zod",
       ],
       output: {
