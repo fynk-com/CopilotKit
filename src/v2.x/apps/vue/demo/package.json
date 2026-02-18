@@ -1,0 +1,32 @@
+{
+  "name": "@copilotkitnext/vue-demo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "start": "nuxt start",
+    "lint": "eslint \"**/*.{js,mjs,cjs,ts,vue}\""
+  },
+  "dependencies": {
+    "@ag-ui/core": "0.0.42",
+    "@ag-ui/mcp-apps-middleware": "0.0.2",
+    "@copilotkitnext/agent": "workspace:*",
+    "@copilotkitnext/core": "workspace:*",
+    "@copilotkitnext/react": "workspace:*",
+    "@copilotkitnext/runtime": "workspace:*",
+    "@copilotkitnext/vue": "workspace:*",
+    "@copilotkit/voice": "workspace:*",
+    "h3": "^1.15.4",
+    "hono": "^4.11.4",
+    "nuxt": "3.17.5",
+    "openai": "^5.9.0",
+    "rxjs": "7.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "eslint": "^9.39.1",
+    "typescript": "5.8.2"
+  }
+}

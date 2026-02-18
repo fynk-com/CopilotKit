@@ -1,0 +1,12 @@
+{
+  "extends": "@copilotkitnext/typescript-config/base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@copilotkitnext/vue": ["../../packages/vue/src"],
+      "@/*": ["../../packages/vue/src/*"]
+    },
+    "types": ["node"]
+  },
+  "include": [".storybook/**/*", "stories/**/*"]
+}
