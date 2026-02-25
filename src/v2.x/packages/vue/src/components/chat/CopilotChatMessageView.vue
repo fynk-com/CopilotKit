@@ -15,7 +15,8 @@ import {
   MCPAppsActivityRenderer,
   MCPAppsActivityType,
 } from "../MCPAppsActivityRenderer";
-import CopilotChatToolCallsView from "./CopilotChatToolCallsView.vue";
+import CopilotChatAssistantMessage from "./CopilotChatAssistantMessage.vue";
+import CopilotChatUserMessage from "./CopilotChatUserMessage.vue";
 
 interface MessageMetaProps {
   message: Message;
@@ -187,21 +188,15 @@ function resolveToolMessage(message: Message, toolCallId: string): ToolMessage |
         :messages="messages"
         :is-running="isRunning"
       >
-        <div class="prose max-w-full break-words" :data-message-id="message.id">
-          {{ message.content }}
-          <CopilotChatToolCallsView
-            :message="message"
-            :messages="messages"
+        <CopilotChatAssistantMessage :message="message" :messages="messages" :is-running="isRunning">
+          <template
+            v-for="slotName in forwardedSlotNames"
+            :key="slotName"
+            #[slotName]="slotProps"
           >
-            <template
-              v-for="slotName in forwardedSlotNames"
-              :key="slotName"
-              #[slotName]="slotProps"
-            >
-              <slot :name="slotName" v-bind="slotProps" />
-            </template>
-          </CopilotChatToolCallsView>
-        </div>
+            <slot :name="slotName" v-bind="slotProps" />
+          </template>
+        </CopilotChatAssistantMessage>
       </slot>
 
       <slot
@@ -209,12 +204,7 @@ function resolveToolMessage(message: Message, toolCallId: string): ToolMessage |
         name="user-message"
         :message="message"
       >
-        <div
-          class="bg-muted relative max-w-[80%] rounded-[18px] px-4 py-1.5 whitespace-pre-wrap self-end"
-          :data-message-id="message.id"
-        >
-          {{ message.content }}
-        </div>
+        <CopilotChatUserMessage :message="message" />
       </slot>
 
       <slot

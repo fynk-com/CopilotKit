@@ -5,6 +5,7 @@ import type { ActivityMessage, AssistantMessage, Message, ToolMessage } from "@a
 import CopilotKitProvider from "../../../providers/CopilotKitProvider.vue";
 import CopilotChatConfigurationProvider from "../../../providers/CopilotChatConfigurationProvider.vue";
 import { useCopilotKit } from "../../../providers/useCopilotKit";
+import { CopilotChatDefaultLabels } from "../../../providers/types";
 import CopilotChatMessageView from "../CopilotChatMessageView.vue";
 
 function mountMessageView(
@@ -32,6 +33,31 @@ function mountMessageView(
 }
 
 describe("CopilotChatMessageView (Vue slots)", () => {
+  it("renders default assistant and user components when no custom slots are passed", () => {
+    const messages: Message[] = [
+      {
+        id: "user-default",
+        role: "user",
+        content: "hello user",
+      } as Message,
+      {
+        id: "assistant-default",
+        role: "assistant",
+        content: "hello assistant",
+      } as AssistantMessage,
+    ];
+
+    const wrapper = mountMessageView(messages);
+
+    expect(wrapper.find('[data-message-id="user-default"]').exists()).toBe(true);
+    expect(wrapper.find('[data-message-id="assistant-default"]').exists()).toBe(true);
+    expect(
+      wrapper
+        .find(`[aria-label="${CopilotChatDefaultLabels.assistantMessageToolbarCopyMessageLabel}"]`)
+        .exists(),
+    ).toBe(true);
+  });
+
   it("renders named activity slot when activity type matches", () => {
     const messages: Message[] = [
       {

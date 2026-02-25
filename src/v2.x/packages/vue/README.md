@@ -75,7 +75,7 @@ Supported tool-level slots:
 
 - **Providers**: `CopilotKitProvider`, `CopilotChatConfigurationProvider`
 - **Composables**: `useCopilotKit`, `useCopilotChatConfiguration`, `useAgent`, `useAgentContext`, `useFrontendTool`, `useHumanInTheLoop`, `useSuggestions`, `useConfigureSuggestions`
-- **Components**: `CopilotChatMessageView`, `CopilotChatToolCallsView`, `CopilotChatInput`, `MCPAppsActivityRenderer`
+- **Components**: `CopilotChatAssistantMessage`, `CopilotChatUserMessage`, `CopilotChatMessageView`, `CopilotChatToolCallsView`, `CopilotChatInput`, `MCPAppsActivityRenderer`
 - **Core**: `CopilotKitCoreVue`
 
 ## Icon Foundation (Internal)
