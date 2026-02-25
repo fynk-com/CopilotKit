@@ -9,11 +9,13 @@
 
 - Treat React story names, grouping, and scenario intent as canonical.
 - Mirror stories one-by-one with equivalent Vue components as they are ported.
+- Keep story file ownership close to React so each Vue story maps directly to its React counterpart.
 
 ## Parity constraints
 
 - Do not add Vue-only stories, controls, or showcase flows unless React has an equivalent.
 - Story titles should stay aligned with React naming to preserve comparison clarity.
+- Avoid introducing Vue-only scaffold abstractions that make React↔Vue story diffs harder to follow.
 
 ## Implementation guidance
 

@@ -28,6 +28,7 @@ import { CopilotKitProvider } from "@copilotkitnext/vue";
 
 - `CopilotChatMessageView`
 - `CopilotChatToolCallsView`
+- `CopilotChatInput`
 
 ```vue
 <template>
@@ -74,7 +75,7 @@ Supported tool-level slots:
 
 - **Providers**: `CopilotKitProvider`, `CopilotChatConfigurationProvider`
 - **Composables**: `useCopilotKit`, `useCopilotChatConfiguration`, `useAgent`, `useAgentContext`, `useFrontendTool`, `useHumanInTheLoop`, `useSuggestions`, `useConfigureSuggestions`
-- **Components**: `CopilotChatMessageView`, `CopilotChatToolCallsView`, `MCPAppsActivityRenderer`
+- **Components**: `CopilotChatMessageView`, `CopilotChatToolCallsView`, `CopilotChatInput`, `MCPAppsActivityRenderer`
 - **Core**: `CopilotKitCoreVue`
 
 ## Icon Foundation (Internal)
@@ -82,6 +83,30 @@ Supported tool-level slots:
 - Chat/UI components should import icons from `src/components/icons/index.ts`.
 - Do not import from `lucide-vue-next` directly in Vue package components.
 - This adapter is internal and intentionally not exported from the package root.
+
+## Text Input (MVP)
+
+```vue
+<script setup lang="ts">
+import { ref } from "vue";
+import { CopilotChatConfigurationProvider, CopilotChatInput } from "@copilotkitnext/vue";
+
+const input = ref("");
+
+function onSubmitMessage(value: string) {
+  console.log("submit:", value);
+}
+</script>
+
+<template>
+  <CopilotChatConfigurationProvider thread-id="thread-1" agent-id="default">
+    <CopilotChatInput
+      v-model="input"
+      @submit-message="onSubmitMessage"
+    />
+  </CopilotChatConfigurationProvider>
+</template>
+```
 
 ## React Parity Notes
 

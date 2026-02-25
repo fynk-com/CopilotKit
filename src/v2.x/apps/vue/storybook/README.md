@@ -7,6 +7,7 @@ Storybook workspace for `@copilotkitnext/vue` with strict parity intent against 
 - Canonical reference: `src/v2.x/apps/react/storybook`.
 - Mirror React story structure, naming, and scenario coverage.
 - Keep story intent aligned to support visual and behavioral side-by-side checks.
+- Keep story scaffolding close to React file/story ownership so changes are easy to diff across frameworks.
 - No Vue-only story tracks until React parity is complete.
 
 ## Current status
