@@ -150,7 +150,7 @@ const value = 1;
     expect(wrapper.find('[data-streamdown="code-lang"]').text().toLowerCase()).toBe("ts");
   });
 
-  it("renders markdown image and table action buttons", () => {
+  it("renders markdown image and table actions", () => {
     const message: AssistantMessage = {
       id: "assistant-6",
       role: "assistant",
@@ -165,6 +165,7 @@ const value = 1;
     const wrapper = mountAssistantMessage(message);
 
     expect(wrapper.find('button[title="Download image"]').exists()).toBe(true);
+    expect(wrapper.find("table").exists()).toBe(true);
     expect(wrapper.find('button[title="Copy table"]').exists()).toBe(true);
     expect(wrapper.find('button[title="Download table"]').exists()).toBe(true);
   });

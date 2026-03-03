@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineComponent, h, onBeforeUnmount, ref } from "vue";
+import { computed, defineComponent, h, onBeforeUnmount, onMounted, ref } from "vue";
 import type { AssistantMessage, Message } from "@ag-ui/core";
 import { StreamMarkdown } from "streamdown-vue";
 import { useCopilotChatConfiguration } from "../../providers/useCopilotChatConfiguration";
@@ -83,48 +83,56 @@ function triggerDownload(href: string, fileName: string) {
   document.body.removeChild(anchor);
 }
 
-function triggerBlobDownload(content: string, mimeType: string, fileName: string) {
-  if (typeof window === "undefined" || typeof URL === "undefined") {
-    return;
-  }
-  const blob = new Blob([content], { type: mimeType });
-  const objectUrl = URL.createObjectURL(blob);
-  triggerDownload(objectUrl, fileName);
-  URL.revokeObjectURL(objectUrl);
-}
+type MarkdownTableData = {
+  headers: string[];
+  rows: string[][];
+};
 
-function extractTableRows(tableElement: HTMLTableElement): string[][] {
-  return Array.from(tableElement.querySelectorAll("tr")).map((row) =>
-    Array.from(row.querySelectorAll("th, td")).map((cell) => (cell.textContent ?? "").trim()),
+function extractTableData(table: HTMLTableElement): MarkdownTableData {
+  const headers = Array.from(table.querySelectorAll("thead th")).map((cell) =>
+    (cell.textContent ?? "").trim(),
   );
+  const rows = Array.from(table.querySelectorAll("tbody tr")).map((row) =>
+    Array.from(row.querySelectorAll("td")).map((cell) => (cell.textContent ?? "").trim()),
+  );
+  return { headers, rows };
 }
 
-function toMarkdownTable(rows: string[][]): string {
-  if (!rows.length) {
-    return "";
+function toDelimitedTable(data: MarkdownTableData, delimiter: "," | "\t"): string {
+  const escapeCell = (value: string): string => {
+    const needsQuotes = value.includes(delimiter) || value.includes('"') || value.includes("\n");
+    const escaped = value.replace(/"/g, '""');
+    return needsQuotes ? `"${escaped}"` : escaped;
+  };
+
+  const lines: string[] = [];
+  if (data.headers.length > 0) {
+    lines.push(data.headers.map(escapeCell).join(delimiter));
   }
-
-  const width = Math.max(...rows.map((row) => row.length), 0);
-  if (!width) {
-    return "";
+  for (const row of data.rows) {
+    lines.push(row.map(escapeCell).join(delimiter));
   }
-
-  const sanitize = (value: string) => value.replace(/\|/g, "\\|").replace(/\n/g, " ");
-  const padRow = (row: string[]) => Array.from({ length: width }, (_, index) => sanitize(row[index] ?? ""));
-  const [header = Array.from({ length: width }, () => ""), ...body] = rows.map(padRow);
-  const separator = Array.from({ length: width }, () => "---");
-  const lines = [
-    `| ${header.join(" | ")} |`,
-    `| ${separator.join(" | ")} |`,
-    ...body.map((row) => `| ${row.join(" | ")} |`),
-  ];
-
   return lines.join("\n");
 }
 
-function toCsvTable(rows: string[][]): string {
-  const escape = (value: string) => `"${value.replace(/"/g, "\"\"")}"`;
-  return rows.map((row) => row.map((cell) => escape(cell ?? "")).join(",")).join("\n");
+function toMarkdownTable(data: MarkdownTableData): string {
+  if (data.headers.length === 0) {
+    return data.rows.map((row) => `| ${row.join(" | ")} |`).join("\n");
+  }
+
+  const separator = `| ${data.headers.map(() => "---").join(" | ")} |`;
+  const body = data.rows.map((row) => `| ${row.join(" | ")} |`);
+  return [`| ${data.headers.join(" | ")} |`, separator, ...body].join("\n");
+}
+
+function triggerBlobDownload(content: string, fileName: string, mimeType: string) {
+  if (typeof document === "undefined") {
+    return;
+  }
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  triggerDownload(url, fileName);
+  URL.revokeObjectURL(url);
 }
 
 const MarkdownImage = defineComponent({
@@ -193,97 +201,307 @@ const MarkdownImage = defineComponent({
   },
 });
 
+const tableIconButtonClass =
+  "cursor-pointer p-1 text-muted-foreground transition-all hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50";
+const tableMenuClass =
+  "absolute top-full right-0 z-10 mt-1 min-w-[120px] overflow-hidden rounded-md border border-border bg-background shadow-lg";
+const tableMenuItemClass = "w-full px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40";
+
 const MarkdownTable = defineComponent({
   name: "CopilotMarkdownTable",
   inheritAttrs: false,
   setup(_, { attrs, slots }) {
-    const tableRef = ref<HTMLTableElement | null>(null);
+    const wrapperRef = ref<HTMLElement | null>(null);
+    const showCopyMenu = ref(false);
+    const showDownloadMenu = ref(false);
     const copied = ref(false);
-    let copiedTimeout: ReturnType<typeof setTimeout> | null = null;
+    let copiedResetTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    const resetCopied = () => {
-      if (copiedTimeout) {
-        clearTimeout(copiedTimeout);
+    const closeMenus = () => {
+      showCopyMenu.value = false;
+      showDownloadMenu.value = false;
+    };
+
+    const resetCopiedStateWithDelay = () => {
+      if (copiedResetTimeout) {
+        clearTimeout(copiedResetTimeout);
       }
       copied.value = true;
-      copiedTimeout = setTimeout(() => {
+      copiedResetTimeout = setTimeout(() => {
         copied.value = false;
-        copiedTimeout = null;
+        copiedResetTimeout = null;
       }, 2000);
     };
 
-    async function handleCopyTable() {
-      const tableElement = tableRef.value;
-      if (!tableElement) {
-        return;
-      }
-      const markdown = toMarkdownTable(extractTableRows(tableElement));
-      if (!markdown) {
-        return;
-      }
-      try {
-        await navigator.clipboard.writeText(markdown);
-      } catch {
-      }
-      resetCopied();
-    }
+    const findTable = (): HTMLTableElement | null => {
+      if (!wrapperRef.value) return null;
+      return wrapperRef.value.querySelector("table");
+    };
 
-    function handleDownloadTable() {
-      const tableElement = tableRef.value;
-      if (!tableElement) {
-        return;
+    const getTableData = (): MarkdownTableData | null => {
+      const table = findTable();
+      if (!table) return null;
+      return extractTableData(table);
+    };
+
+    const copyTableAs = async (format: "csv" | "tsv") => {
+      const data = getTableData();
+      if (!data) return;
+
+      const delimiter = format === "csv" ? "," : "\t";
+      const text = toDelimitedTable(data, delimiter);
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {
+          return;
+        }
       }
-      const csv = toCsvTable(extractTableRows(tableElement));
-      if (!csv) {
-        return;
+
+      closeMenus();
+      resetCopiedStateWithDelay();
+    };
+
+    const downloadTableAs = (format: "csv" | "markdown") => {
+      const data = getTableData();
+      if (!data) return;
+
+      if (format === "csv") {
+        triggerBlobDownload(toDelimitedTable(data, ","), "table.csv", "text/csv");
+      } else {
+        triggerBlobDownload(toMarkdownTable(data), "table.md", "text/markdown");
       }
-      triggerBlobDownload(csv, "text/csv;charset=utf-8", "table.csv");
-    }
+
+      closeMenus();
+    };
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!wrapperRef.value) return;
+      const target = event.target as Node | null;
+      if (target && !wrapperRef.value.contains(target)) {
+        closeMenus();
+      }
+    };
+
+    onMounted(() => {
+      if (typeof document !== "undefined") {
+        document.addEventListener("mousedown", handleClickOutside);
+      }
+    });
 
     onBeforeUnmount(() => {
-      if (copiedTimeout) {
-        clearTimeout(copiedTimeout);
+      if (copiedResetTimeout) {
+        clearTimeout(copiedResetTimeout);
+      }
+      if (typeof document !== "undefined") {
+        document.removeEventListener("mousedown", handleClickOutside);
       }
     });
 
     return () => {
       const tableAttrs = {
         ...attrs,
-        ref: tableRef,
         class: ["w-full border-collapse border border-border", attrs.class].filter(Boolean).join(" "),
         "data-streamdown": "table",
       } as Record<string, unknown>;
+
       delete tableAttrs.className;
 
-      const actionButtonClass =
-        "cursor-pointer p-1 text-muted-foreground transition-all hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50";
-
-      return h("div", { class: "my-4 flex flex-col space-y-2", "data-streamdown": "table-wrapper" }, [
+      return h("div", { ref: wrapperRef, class: "my-4 flex flex-col space-y-2", "data-streamdown": "table-wrapper" }, [
         h("div", { class: "flex items-center justify-end gap-1" }, [
-          h(
-            "button",
-            {
-              type: "button",
-              class: actionButtonClass,
-              title: "Copy table",
-              onClick: handleCopyTable,
-            },
-            [h(copied.value ? IconCheck : IconCopy, { class: "size-[14px]" })],
-          ),
-          h(
-            "button",
-            {
-              type: "button",
-              class: actionButtonClass,
-              title: "Download table",
-              onClick: handleDownloadTable,
-            },
-            [h(IconDownload, { class: "size-[14px]" })],
-          ),
+          h("div", { class: "relative" }, [
+            h(
+              "button",
+              {
+                type: "button",
+                class: tableIconButtonClass,
+                title: "Copy table",
+                onClick: () => {
+                  showCopyMenu.value = !showCopyMenu.value;
+                  showDownloadMenu.value = false;
+                },
+              },
+              [copied.value ? h(IconCheck, { class: "size-[14px]" }) : h(IconCopy, { class: "size-[14px]" })],
+            ),
+            showCopyMenu.value
+              ? h("div", { class: tableMenuClass }, [
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      class: tableMenuItemClass,
+                      title: "Copy table as CSV",
+                      onClick: () => copyTableAs("csv"),
+                    },
+                    "CSV",
+                  ),
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      class: tableMenuItemClass,
+                      title: "Copy table as TSV",
+                      onClick: () => copyTableAs("tsv"),
+                    },
+                    "TSV",
+                  ),
+                ])
+              : null,
+          ]),
+          h("div", { class: "relative" }, [
+            h(
+              "button",
+              {
+                type: "button",
+                class: tableIconButtonClass,
+                title: "Download table",
+                onClick: () => {
+                  showDownloadMenu.value = !showDownloadMenu.value;
+                  showCopyMenu.value = false;
+                },
+              },
+              [h(IconDownload, { class: "size-[14px]" })],
+            ),
+            showDownloadMenu.value
+              ? h("div", { class: tableMenuClass }, [
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      class: tableMenuItemClass,
+                      title: "Download table as CSV",
+                      onClick: () => downloadTableAs("csv"),
+                    },
+                    "CSV",
+                  ),
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      class: tableMenuItemClass,
+                      title: "Download table as Markdown",
+                      onClick: () => downloadTableAs("markdown"),
+                    },
+                    "Markdown",
+                  ),
+                ])
+              : null,
+          ]),
         ]),
-        h("div", { class: "overflow-x-auto" }, [h("table", tableAttrs, slots.default?.() ?? [])]),
+        h("div", { class: "overflow-x-auto" }, [h("table", tableAttrs, slots.default ? slots.default() : [])]),
       ]);
     };
+  },
+});
+
+const codeActionButtonClass =
+  "cursor-pointer p-1 text-muted-foreground transition-all hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50";
+
+const codeLanguageExtensionMap: Record<string, string> = {
+  javascript: "js",
+  js: "js",
+  typescript: "ts",
+  ts: "ts",
+  json: "json",
+  vue: "vue",
+  html: "html",
+  css: "css",
+  md: "md",
+  markdown: "md",
+  sh: "sh",
+  bash: "sh",
+  py: "py",
+  python: "py",
+  go: "go",
+  rust: "rs",
+  rs: "rs",
+};
+
+const CodeBlockCopyAction = defineComponent({
+  name: "CopilotCodeBlockCopyAction",
+  props: {
+    code: {
+      type: String,
+      default: "",
+    },
+  },
+  setup(actionProps) {
+    const copied = ref(false);
+    let resetTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const handleClick = async () => {
+      if (!actionProps.code) return;
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(actionProps.code);
+        } catch {
+          return;
+        }
+      }
+
+      if (resetTimeout) {
+        clearTimeout(resetTimeout);
+      }
+      copied.value = true;
+      resetTimeout = setTimeout(() => {
+        copied.value = false;
+        resetTimeout = null;
+      }, 2000);
+    };
+
+    onBeforeUnmount(() => {
+      if (resetTimeout) {
+        clearTimeout(resetTimeout);
+      }
+    });
+
+    return () =>
+      h(
+        "button",
+        {
+          type: "button",
+          class: codeActionButtonClass,
+          title: "Copy Code",
+          "data-streamdown": "code-block-copy-button",
+          onClick: handleClick,
+        },
+        [copied.value ? h(IconCheck, { class: "size-[14px]" }) : h(IconCopy, { class: "size-[14px]" })],
+      );
+  },
+});
+
+const CodeBlockDownloadAction = defineComponent({
+  name: "CopilotCodeBlockDownloadAction",
+  props: {
+    code: {
+      type: String,
+      default: "",
+    },
+    language: {
+      type: String,
+      default: "",
+    },
+  },
+  setup(actionProps) {
+    const handleClick = () => {
+      if (!actionProps.code) return;
+      const extension = codeLanguageExtensionMap[actionProps.language.toLowerCase()] ?? "txt";
+      triggerBlobDownload(actionProps.code, `file.${extension}`, "text/plain");
+    };
+
+    return () =>
+      h(
+        "button",
+        {
+          type: "button",
+          class: codeActionButtonClass,
+          title: "Download file",
+          "data-streamdown": "code-block-download-button",
+          onClick: handleClick,
+        },
+        [h(IconDownload, { class: "size-[14px]" })],
+      );
   },
 });
 
@@ -401,6 +619,11 @@ onBeforeUnmount(() => {
       class="copilot-chat-assistant-markdown"
       :content="normalizedContent"
       :components="markdownComponents"
+      :code-block-actions="[CodeBlockDownloadAction, CodeBlockCopyAction]"
+      :code-block-show-line-numbers="false"
+      :code-block-hide-copy="true"
+      :code-block-hide-download="true"
+      :allowed-link-prefixes="['https://', 'http://', '#', '/', './', '../']"
       :shiki-theme="{ light: 'github-light', dark: 'github-dark' }"
     />
 
@@ -472,103 +695,3 @@ onBeforeUnmount(() => {
     </div>
   </div>
 </template>
-
-<style>
-.copilot-chat-assistant-markdown [data-streamdown="p"] {
-  margin-top: 1.25em;
-  margin-bottom: 1.25em;
-}
-
-.copilot-chat-assistant-markdown [data-streamdown="p"]:first-child {
-  margin-top: 0;
-}
-
-.copilot-chat-assistant-markdown [data-streamdown="code-block"] {
-  background: transparent;
-  border: 1px solid oklch(0.922 0 0);
-  border-radius: 14px;
-  margin: 1rem 0;
-  overflow: hidden;
-}
-
-.copilot-chat-assistant-markdown [data-streamdown="code-block-header"] {
-  background: transparent;
-  border-bottom: none;
-  color: oklch(0.556 0 0);
-  display: flex;
-  font-size: 12px;
-  justify-content: space-between;
-  padding: 12px;
-}
-
-.copilot-chat-assistant-markdown [data-streamdown="code-body"] {
-  background: transparent;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 14px;
-  line-height: 20px;
-  padding: 16px;
-}
-
-.copilot-chat-assistant-markdown [data-streamdown="code-lang"] {
-  background: transparent;
-  color: oklch(0.556 0 0);
-  font-size: 12px;
-  margin-left: 4px;
-  padding: 0;
-  text-transform: lowercase;
-}
-
-.copilot-chat-assistant-markdown [data-streamdown="code-actions"] {
-  align-items: center;
-  display: flex;
-  gap: 8px;
-}
-
-.copilot-chat-assistant-markdown [data-streamdown="download-button"],
-.copilot-chat-assistant-markdown [data-streamdown="copy-button"] {
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  color: oklch(0.556 0 0);
-  padding: 4px;
-}
-
-.copilot-chat-assistant-markdown [data-streamdown="download-button"]:hover,
-.copilot-chat-assistant-markdown [data-streamdown="copy-button"]:hover {
-  background: transparent;
-  color: oklch(0.205 0 0);
-}
-
-.copilot-chat-assistant-markdown [data-streamdown="pre"] {
-  background: transparent;
-  border: none;
-  line-height: 20px;
-  margin: 0;
-  padding: 0;
-}
-
-.copilot-chat-assistant-markdown [data-streamdown="code"] {
-  background: transparent;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.copilot-chat-assistant-markdown .sr-only {
-  border: 0;
-  clip: rect(0, 0, 0, 0);
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  padding: 0;
-  position: absolute;
-  white-space: nowrap;
-  width: 1px;
-}
-
-.copilot-chat-assistant-markdown [data-streamdown="download-button"] svg,
-.copilot-chat-assistant-markdown [data-streamdown="copy-button"] svg {
-  height: 14px;
-  width: 14px;
-}
-</style>

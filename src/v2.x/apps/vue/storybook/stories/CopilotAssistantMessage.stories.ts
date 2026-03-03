@@ -83,7 +83,7 @@ Here's some \`inline code\` that should not have a copy button. You can also hav
 ## Links and Images
 - [External link](https://example.com)
 - [Internal link](#section)
-- ![Alt text](https://picsum.photos/seed/copilotkit/150/100)
+- ![Alt text](https://picsum.photos/150/100)
 
 ## Blockquotes
 > This is a blockquote
@@ -352,7 +352,13 @@ export const WithAdditionalToolbarItems: Story = {
       CopilotChatAssistantMessage,
     },
     setup() {
-      return { args };
+      const onCustomButton1 = () => {
+        window.alert("Custom button 1 clicked!");
+      };
+      const onCustomButton2 = () => {
+        window.alert("Custom button 2 clicked!");
+      };
+      return { args, onCustomButton1, onCustomButton2 };
     },
     template: `
       <div style="display:flex; justify-content:center; align-items:flex-start; min-height:100vh; padding:16px">
