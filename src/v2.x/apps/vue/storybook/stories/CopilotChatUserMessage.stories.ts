@@ -6,7 +6,6 @@ import CopilotStoryLayout from "./CopilotStoryLayout.vue";
 const simpleMessage: UserMessage = {
   id: "simple-user-message",
   content: "Hello! Can you help me build a React component?",
-  timestamp: new Date(),
   role: "user",
 };
 
@@ -18,7 +17,6 @@ const longMessage: UserMessage = {
 2. Form validation
 3. Mobile responsiveness
 4. Social login`,
-  timestamp: new Date(),
   role: "user",
 };
 
@@ -28,20 +26,24 @@ const codeMessage: UserMessage = {
 TypeError: Cannot read property 'map' of undefined
 
 How can I fix this?`,
-  timestamp: new Date(),
   role: "user",
 };
 
 const shortMessage: UserMessage = {
   id: "short-user-message",
   content: "What's the difference between useState and useReducer?",
-  timestamp: new Date(),
   role: "user",
 };
 
 const meta = {
   title: "UI/CopilotChatUserMessage",
   component: CopilotChatUserMessage,
+  args: {
+    message: simpleMessage,
+    onEditMessage: () => {
+      console.log("[Storybook] Edit message");
+    },
+  },
   parameters: {
     layout: "fullscreen",
   },

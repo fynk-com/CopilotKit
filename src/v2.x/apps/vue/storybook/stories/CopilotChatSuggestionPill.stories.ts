@@ -1,4 +1,3 @@
-import { defineComponent, h, markRaw } from "vue";
 import type { Component } from "vue";
 import type { Meta, StoryObj } from "@storybook/vue3-vite";
 import { ArrowRight, Sparkles } from "lucide-vue-next";
@@ -9,24 +8,7 @@ type SuggestionPillStoryArgs = {
   isLoading?: boolean;
   icon?: Component;
 };
-
-const SparklesIcon = markRaw(
-  defineComponent({
-    name: "SparklesIcon",
-    render() {
-      return h(Sparkles, { class: "h-4 w-4", "aria-hidden": "true" });
-    },
-  }),
-);
-
-const ArrowRightIcon = markRaw(
-  defineComponent({
-    name: "ArrowRightIcon",
-    render() {
-      return h(ArrowRight, { class: "h-4 w-4", "aria-hidden": "true" });
-    },
-  }),
-);
+type SuggestionPillIcon = InstanceType<typeof CopilotChatSuggestionPill>["$props"]["icon"];
 
 const meta = {
   title: "UI/CopilotChatSuggestionPill",
@@ -51,13 +33,13 @@ const meta = {
 } satisfies Meta<SuggestionPillStoryArgs>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<SuggestionPillStoryArgs>;
 
 export const Default: Story = {};
 
 export const WithIcon: Story = {
   args: {
-    icon: SparklesIcon,
+    icon: Sparkles as unknown as SuggestionPillIcon,
   },
 };
 
@@ -69,7 +51,7 @@ export const Loading: Story = {
 
 export const WithArrow: Story = {
   args: {
-    icon: ArrowRightIcon,
+    icon: ArrowRight as unknown as SuggestionPillIcon,
     label: "Summarize notes into next steps",
   },
 };

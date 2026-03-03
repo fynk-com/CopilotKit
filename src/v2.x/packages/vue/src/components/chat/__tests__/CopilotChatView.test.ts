@@ -86,7 +86,7 @@ describe("CopilotChatView", () => {
 
     const textarea = wrapper.get("[data-testid='copilot-chat-input-textarea']");
     await textarea.setValue("   hello from vue chat view   ");
-    await textarea.trigger("keydown.enter");
+    await textarea.trigger("keydown", { key: "Enter" });
 
     expect(onInputChange).toHaveBeenCalledWith("   hello from vue chat view   ");
     expect(onSubmitMessage).toHaveBeenCalledWith("hello from vue chat view");
@@ -139,5 +139,31 @@ describe("CopilotChatView", () => {
     expect(onStartTranscribe).toHaveBeenCalled();
     const chatViewWrapper = wrapper.findComponent(CopilotChatView);
     expect(chatViewWrapper.emitted("start-transcribe")?.length).toBe(1);
+  });
+
+  it("forwards cancel/finish transcribe handlers and emits audio finish event", async () => {
+    const onCancelTranscribe = vi.fn();
+    const onFinishTranscribe = vi.fn();
+    const onFinishTranscribeWithAudio = vi.fn();
+    const wrapper = mountChatView({
+      messages: chatMessages,
+      inputMode: "transcribe",
+      onCancelTranscribe,
+      onFinishTranscribe,
+      onFinishTranscribeWithAudio,
+    });
+
+    await wrapper.get("[data-testid='copilot-chat-input-cancel-transcribe']").trigger("click");
+    expect(onCancelTranscribe.mock.calls.length).toBeGreaterThanOrEqual(1);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await wrapper.get("[data-testid='copilot-chat-input-finish-transcribe']").trigger("click");
+    expect(onFinishTranscribe.mock.calls.length).toBeGreaterThanOrEqual(1);
+    expect(onFinishTranscribeWithAudio.mock.calls.length).toBeGreaterThanOrEqual(1);
+
+    const chatViewWrapper = wrapper.findComponent(CopilotChatView);
+    expect((chatViewWrapper.emitted("cancel-transcribe")?.length ?? 0)).toBeGreaterThanOrEqual(1);
+    expect((chatViewWrapper.emitted("finish-transcribe")?.length ?? 0)).toBeGreaterThanOrEqual(1);
+    expect((chatViewWrapper.emitted("finish-transcribe-with-audio")?.length ?? 0)).toBeGreaterThanOrEqual(1);
   });
 });

@@ -8,6 +8,7 @@ import { IconChevronDown } from "../icons";
 import CopilotChatInput from "./CopilotChatInput.vue";
 import CopilotChatMessageView from "./CopilotChatMessageView.vue";
 import CopilotChatSuggestionView from "./CopilotChatSuggestionView.vue";
+import type { CopilotChatInputMode, ToolsMenuItem } from "./types";
 
 const FEATHER_HEIGHT = 96;
 const SCROLL_BOTTOM_THRESHOLD = 12;
@@ -23,10 +24,15 @@ const props = withDefaults(
     inputValue?: string;
     onSubmitMessage?: (value: string) => void;
     onStop?: () => void;
+    inputMode?: CopilotChatInputMode;
+    inputToolsMenu?: (ToolsMenuItem | "-")[];
     onInputChange?: (value: string) => void;
     onSelectSuggestion?: (suggestion: Suggestion, index: number) => void;
     onAddFile?: () => void;
     onStartTranscribe?: () => void;
+    onCancelTranscribe?: () => void;
+    onFinishTranscribe?: () => void;
+    onFinishTranscribeWithAudio?: (audioBlob: Blob) => void | Promise<void>;
   }>(),
   {
     messages: () => [],
@@ -38,10 +44,15 @@ const props = withDefaults(
     inputValue: undefined,
     onSubmitMessage: undefined,
     onStop: undefined,
+    inputMode: "input",
+    inputToolsMenu: () => [],
     onInputChange: undefined,
     onSelectSuggestion: undefined,
     onAddFile: undefined,
     onStartTranscribe: undefined,
+    onCancelTranscribe: undefined,
+    onFinishTranscribe: undefined,
+    onFinishTranscribeWithAudio: undefined,
   },
 );
 
@@ -50,13 +61,16 @@ defineSlots<{
   input?: (props: {
     modelValue: string;
     isRunning: boolean;
-    hasAddFileAction: boolean;
-    hasStartTranscribeAction: boolean;
+    inputMode: CopilotChatInputMode;
+    inputToolsMenu: (ToolsMenuItem | "-")[];
     onUpdateModelValue: (value: string) => void;
     onSubmitMessage: (value: string) => void;
     onStop: () => void;
     onAddFile: () => void;
     onStartTranscribe: () => void;
+    onCancelTranscribe: () => void;
+    onFinishTranscribe: () => void;
+    onFinishTranscribeWithAudio: (audioBlob: Blob) => void | Promise<void>;
   }) => unknown;
   "suggestion-view"?: (props: {
     suggestions: Suggestion[];
@@ -67,11 +81,16 @@ defineSlots<{
     suggestions: Suggestion[];
     loadingIndexes: ReadonlyArray<number>;
     modelValue: string;
-    hasAddFileAction: boolean;
-    hasStartTranscribeAction: boolean;
+    inputMode: CopilotChatInputMode;
+    inputToolsMenu: (ToolsMenuItem | "-")[];
     onUpdateModelValue: (value: string) => void;
     onSubmitMessage: (value: string) => void;
     onStop: () => void;
+    onAddFile: () => void;
+    onStartTranscribe: () => void;
+    onCancelTranscribe: () => void;
+    onFinishTranscribe: () => void;
+    onFinishTranscribeWithAudio: (audioBlob: Blob) => void | Promise<void>;
     onSelectSuggestion: (suggestion: Suggestion, index: number) => void;
   }) => unknown;
   "welcome-message"?: () => unknown;
@@ -84,6 +103,9 @@ const emit = defineEmits<{
   "select-suggestion": [suggestion: Suggestion, index: number];
   "add-file": [];
   "start-transcribe": [];
+  "cancel-transcribe": [];
+  "finish-transcribe": [];
+  "finish-transcribe-with-audio": [audioBlob: Blob];
 }>();
 
 const config = useCopilotChatConfiguration();
@@ -115,6 +137,17 @@ const hasAddFileAction = computed(
 );
 const hasStartTranscribeAction = computed(
   () => typeof props.onStartTranscribe === "function" || hasListener("onStartTranscribe"),
+);
+const hasCancelTranscribeAction = computed(
+  () => typeof props.onCancelTranscribe === "function" || hasListener("onCancelTranscribe"),
+);
+const hasFinishTranscribeAction = computed(
+  () => typeof props.onFinishTranscribe === "function" || hasListener("onFinishTranscribe"),
+);
+const hasFinishTranscribeWithAudioAction = computed(
+  () =>
+    typeof props.onFinishTranscribeWithAudio === "function" ||
+    hasListener("onFinishTranscribeWithAudio"),
 );
 const messagePaddingBottom = computed(
   () => `${inputContainerHeight.value + FEATHER_HEIGHT + (hasSuggestions.value ? 4 : 32)}px`,
@@ -228,6 +261,47 @@ function handleStartTranscribe() {
   emit("start-transcribe");
 }
 
+function handleCancelTranscribe() {
+  props.onCancelTranscribe?.();
+  emit("cancel-transcribe");
+}
+
+function handleFinishTranscribe() {
+  props.onFinishTranscribe?.();
+  emit("finish-transcribe");
+}
+
+async function handleFinishTranscribeWithAudio(audioBlob: Blob) {
+  await props.onFinishTranscribeWithAudio?.(audioBlob);
+  emit("finish-transcribe-with-audio", audioBlob);
+}
+
+const inputEventProps = computed(() => {
+  const listeners: Record<string, unknown> = {
+    "onUpdate:modelValue": handleInputValueChange,
+    onSubmitMessage: handleSubmitMessage,
+    onStop: handleStop,
+  };
+
+  if (hasAddFileAction.value) {
+    listeners.onAddFile = handleAddFile;
+  }
+  if (hasStartTranscribeAction.value) {
+    listeners.onStartTranscribe = handleStartTranscribe;
+  }
+  if (hasCancelTranscribeAction.value) {
+    listeners.onCancelTranscribe = handleCancelTranscribe;
+  }
+  if (hasFinishTranscribeAction.value) {
+    listeners.onFinishTranscribe = handleFinishTranscribe;
+  }
+  if (hasFinishTranscribeWithAudioAction.value) {
+    listeners.onFinishTranscribeWithAudio = handleFinishTranscribeWithAudio;
+  }
+
+  return listeners;
+});
+
 onMounted(async () => {
   await nextTick();
   syncInputContainerHeight();
@@ -285,11 +359,16 @@ onBeforeUnmount(() => {
       :suggestions="suggestions"
       :loading-indexes="suggestionLoadingIndexes"
       :model-value="resolvedInputValue"
-      :has-add-file-action="hasAddFileAction"
-      :has-start-transcribe-action="hasStartTranscribeAction"
+      :input-mode="inputMode"
+      :input-tools-menu="inputToolsMenu"
       :on-update-model-value="handleInputValueChange"
       :on-submit-message="handleSubmitMessage"
       :on-stop="handleStop"
+      :on-add-file="handleAddFile"
+      :on-start-transcribe="handleStartTranscribe"
+      :on-cancel-transcribe="handleCancelTranscribe"
+      :on-finish-transcribe="handleFinishTranscribe"
+      :on-finish-transcribe-with-audio="handleFinishTranscribeWithAudio"
       :on-select-suggestion="handleSelectSuggestion"
     >
       <div
@@ -310,25 +389,25 @@ onBeforeUnmount(() => {
               name="input"
               :model-value="resolvedInputValue"
               :is-running="isRunning"
-              :has-add-file-action="hasAddFileAction"
-              :has-start-transcribe-action="hasStartTranscribeAction"
+              :input-mode="inputMode"
+              :input-tools-menu="inputToolsMenu"
               :on-update-model-value="handleInputValueChange"
               :on-submit-message="handleSubmitMessage"
               :on-stop="handleStop"
               :on-add-file="handleAddFile"
               :on-start-transcribe="handleStartTranscribe"
+              :on-cancel-transcribe="handleCancelTranscribe"
+              :on-finish-transcribe="handleFinishTranscribe"
+              :on-finish-transcribe-with-audio="handleFinishTranscribeWithAudio"
             >
               <CopilotChatInput
                 :model-value="resolvedInputValue"
                 :is-running="isRunning"
+                :mode="inputMode"
+                :tools-menu="inputToolsMenu"
+                positioning="static"
                 :show-disclaimer="true"
-                :enable-add-file="hasAddFileAction"
-                :enable-start-transcribe="hasStartTranscribeAction"
-                @update:model-value="handleInputValueChange"
-                @submit-message="handleSubmitMessage"
-                @stop="handleStop"
-                @add-file="handleAddFile"
-                @start-transcribe="handleStartTranscribe"
+                v-bind="inputEventProps"
               />
             </slot>
           </div>
@@ -415,36 +494,34 @@ onBeforeUnmount(() => {
 
       <div
         ref="inputContainerRef"
-        class="absolute bottom-0 left-0 right-0 z-20 pointer-events-none px-4 sm:px-0 [div[data-sidebar-chat]_&]:px-8 [div[data-popup-chat]_&]:px-6"
+        class="absolute bottom-0 left-0 right-0 z-20 pointer-events-none"
         data-testid="copilot-chat-view-input-container"
       >
-        <div class="max-w-3xl mx-auto pointer-events-auto">
-          <slot
-            name="input"
+        <slot
+          name="input"
+          :model-value="resolvedInputValue"
+          :is-running="isRunning"
+          :input-mode="inputMode"
+          :input-tools-menu="inputToolsMenu"
+          :on-update-model-value="handleInputValueChange"
+          :on-submit-message="handleSubmitMessage"
+          :on-stop="handleStop"
+          :on-add-file="handleAddFile"
+          :on-start-transcribe="handleStartTranscribe"
+          :on-cancel-transcribe="handleCancelTranscribe"
+          :on-finish-transcribe="handleFinishTranscribe"
+          :on-finish-transcribe-with-audio="handleFinishTranscribeWithAudio"
+        >
+          <CopilotChatInput
             :model-value="resolvedInputValue"
             :is-running="isRunning"
-            :has-add-file-action="hasAddFileAction"
-            :has-start-transcribe-action="hasStartTranscribeAction"
-            :on-update-model-value="handleInputValueChange"
-            :on-submit-message="handleSubmitMessage"
-            :on-stop="handleStop"
-            :on-add-file="handleAddFile"
-            :on-start-transcribe="handleStartTranscribe"
-          >
-            <CopilotChatInput
-              :model-value="resolvedInputValue"
-              :is-running="isRunning"
-              :show-disclaimer="true"
-              :enable-add-file="hasAddFileAction"
-              :enable-start-transcribe="hasStartTranscribeAction"
-              @update:model-value="handleInputValueChange"
-              @submit-message="handleSubmitMessage"
-              @stop="handleStop"
-              @add-file="handleAddFile"
-              @start-transcribe="handleStartTranscribe"
-            />
-          </slot>
-        </div>
+            :mode="inputMode"
+            :tools-menu="inputToolsMenu"
+            positioning="absolute"
+            :show-disclaimer="true"
+            v-bind="inputEventProps"
+          />
+        </slot>
       </div>
     </template>
   </div>

@@ -94,7 +94,7 @@ Supported tool-level slots:
 - Do not import from `lucide-vue-next` directly in Vue package components.
 - This adapter is internal and intentionally not exported from the package root.
 
-## Text Input (MVP)
+## Text Input
 
 ```vue
 <script setup lang="ts">
@@ -112,11 +112,32 @@ function onSubmitMessage(value: string) {
   <CopilotChatConfigurationProvider thread-id="thread-1" agent-id="default">
     <CopilotChatInput
       v-model="input"
+      :tools-menu="[
+        { label: 'Insert template', action: () => console.log('template') },
+      ]"
       @submit-message="onSubmitMessage"
+      @add-file="() => {}"
+      @start-transcribe="() => {}"
+      @cancel-transcribe="() => {}"
+      @finish-transcribe="() => {}"
     />
   </CopilotChatConfigurationProvider>
 </template>
 ```
+
+Key parity props:
+
+- `mode`: `"input" | "transcribe" | "processing"`
+- `toolsMenu`: nested menu items + separators (`"-"`)
+- `positioning`: `"static" | "absolute"`
+- `keyboardHeight`: number (mobile keyboard offset)
+- `showDisclaimer`: explicit override, otherwise defaults by positioning
+
+Key slots:
+
+- `text-area`, `send-button`, `add-menu-button`
+- `start-transcribe-button`, `cancel-transcribe-button`, `finish-transcribe-button`
+- `audio-recorder`, `disclaimer`, `layout`
 
 ## React Parity Notes
 

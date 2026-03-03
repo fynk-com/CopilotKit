@@ -8,7 +8,6 @@ const defaultMessages: Message[] = [
     id: "user-1",
     role: "user",
     content: "Hello! Can you help me understand how React hooks work?",
-    timestamp: new Date(),
   },
   {
     id: "assistant-1",
@@ -18,13 +17,11 @@ const defaultMessages: Message[] = [
 - useState manages local state
 - useEffect handles side effects
 - useContext accesses context values`,
-    timestamp: new Date(),
   },
   {
     id: "user-2",
     role: "user",
     content: "Yes, could you explain useState with a simple example?",
-    timestamp: new Date(),
   },
   {
     id: "assistant-2",
@@ -35,7 +32,6 @@ function Counter() {
   const [count, setCount] = useState(0);
   return <button onClick={() => setCount(count + 1)}>{count}</button>;
 }`,
-    timestamp: new Date(),
   },
 ];
 
@@ -44,13 +40,11 @@ const toolCallMessages: Message[] = [
     id: "user-1",
     role: "user",
     content: "Search docs for Vue slots and summarize results.",
-    timestamp: new Date(),
   },
   {
     id: "assistant-1",
     role: "assistant",
     content: "I'll search and summarize.",
-    timestamp: new Date(),
     toolCalls: [
       {
         id: "tc-1",

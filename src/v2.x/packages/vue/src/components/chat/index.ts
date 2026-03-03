@@ -1,4 +1,6 @@
+export * from "./types";
 export { default as CopilotChatAssistantMessage } from "./CopilotChatAssistantMessage.vue";
+export { default as CopilotChatAudioRecorder } from "./CopilotChatAudioRecorder.vue";
 export { default as CopilotChatInput } from "./CopilotChatInput.vue";
 export { default as CopilotChatMessageView } from "./CopilotChatMessageView.vue";
 export { default as CopilotChatSuggestionPill } from "./CopilotChatSuggestionPill.vue";

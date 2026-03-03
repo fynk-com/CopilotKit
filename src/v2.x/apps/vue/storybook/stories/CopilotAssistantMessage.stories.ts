@@ -9,7 +9,6 @@ import {
 const simpleMessage: AssistantMessage = {
   id: "simple-message",
   content: "Hello! How can I help you today?",
-  timestamp: new Date(),
   role: "assistant",
 };
 
@@ -119,7 +118,6 @@ $$
 
 ---
 *End of markdown test content*`,
-  timestamp: new Date(),
   role: "assistant",
 };
 
@@ -280,7 +278,6 @@ const codeBlocksMessage: AssistantMessage = {
     "}\n" +
     "```\n\n" +
     "All these examples show how inline code like `const`, `function`, and `class` can be mixed with code blocks to create comprehensive documentation.",
-  timestamp: new Date(),
   role: "assistant",
 };
 
@@ -345,7 +342,7 @@ export const WithToolbarButtons: Story = {
 };
 
 export const WithAdditionalToolbarItems: Story = {
-  render: (args) => ({
+  render: (args: Story["args"]) => ({
     components: {
       CopilotKitProvider,
       CopilotChatConfigurationProvider,

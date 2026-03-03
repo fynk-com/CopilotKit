@@ -44,7 +44,7 @@ export const LoadingSecond: Story = {
 };
 
 export const CustomSuggestionSlot: Story = {
-  render: (args) => ({
+  render: (args: Story["args"]) => ({
     components: { CopilotChatSuggestionView, CopilotChatSuggestionPill, SparklesIcon },
     setup() {
       return { args, SparklesIcon };

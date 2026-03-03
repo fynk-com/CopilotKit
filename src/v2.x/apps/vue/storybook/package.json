@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "pnpm --filter @copilotkitnext/vue run build:css && sleep 1 && concurrently \"pnpm --filter @copilotkitnext/vue run dev\" \"pnpm --filter @copilotkitnext/web-inspector run dev\" \"storybook dev -p 6008 --no-open\"",
     "build": "pnpm --filter @copilotkitnext/vue run build:css && storybook build",
+    "check-types": "pnpm --filter @copilotkitnext/vue exec vue-tsc --noEmit -p \"$PWD/tsconfig.json\"",
     "storybook:dev": "pnpm --filter @copilotkitnext/vue run build:css && sleep 1 && concurrently \"pnpm --filter @copilotkitnext/vue run dev\" \"pnpm --filter @copilotkitnext/web-inspector run dev\" \"storybook dev -p 6008 --no-open\"",
     "storybook:build": "pnpm --filter @copilotkitnext/vue run build:css && storybook build"
   },

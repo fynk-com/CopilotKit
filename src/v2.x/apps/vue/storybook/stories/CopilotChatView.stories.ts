@@ -31,7 +31,6 @@ const storyMessages: Message[] = [
   {
     id: "user-1",
     content: "Hello! Can you help me understand how React hooks work?",
-    timestamp: new Date(),
     role: "user",
   },
   {
@@ -45,13 +44,11 @@ const storyMessages: Message[] = [
 - **useMemo** - Memoizes values
 
 Would you like me to explain any of these in detail?`,
-    timestamp: new Date(),
     role: "assistant",
   },
   {
     id: "user-2",
     content: "Yes, could you explain useState with a simple example?",
-    timestamp: new Date(),
     role: "user",
   },
   {
@@ -80,7 +77,6 @@ In this example:
 - It returns an array: \`[currentValue, setterFunction]\`
 - \`count\` is the current state value
 - \`setCount\` is the function to update the state`,
-    timestamp: new Date(),
     role: "assistant",
   },
 ];
@@ -99,8 +95,8 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const fullscreenDecorator = [
-  (story: unknown) => ({
+const fullscreenDecorator: Story["decorators"] = [
+  (story) => ({
     components: { story },
     template: `
       <div style="height: 100vh; margin: 0; padding: 0; overflow: hidden">
