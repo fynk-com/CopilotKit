@@ -1,6 +1,7 @@
 import type { Preview } from "@storybook/vue3-vite";
 import { withThemeByClassName } from "@storybook/addon-themes";
 import "@copilotkitnext/react/styles.css";
+import "@copilotkitnext/vue/styles.css";
 import "./preview.css";
 
 const preview: Preview = {

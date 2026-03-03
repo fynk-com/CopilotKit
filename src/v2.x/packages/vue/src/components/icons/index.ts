@@ -9,6 +9,7 @@ export {
   Square as IconSquare,
   Loader2 as IconLoader2,
   Copy as IconCopy,
+  Download as IconDownload,
   Edit as IconEdit,
   ChevronLeft as IconChevronLeft,
   ChevronRight as IconChevronRight,

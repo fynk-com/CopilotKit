@@ -126,4 +126,46 @@ describe("CopilotChatAssistantMessage", () => {
         .exists(),
     ).toBe(false);
   });
+
+  it("renders markdown lists and fenced code blocks", () => {
+    const message: AssistantMessage = {
+      id: "assistant-5",
+      role: "assistant",
+      content: `Here is a quick summary:
+
+- **First** item
+- \`Second\` item
+
+\`\`\`ts
+const value = 1;
+\`\`\``,
+      timestamp: new Date(),
+    };
+
+    const wrapper = mountAssistantMessage(message);
+
+    expect(wrapper.find("ul li").exists()).toBe(true);
+    expect(wrapper.find("strong").text()).toBe("First");
+    expect(wrapper.find('[data-streamdown="code-block"]').exists()).toBe(true);
+    expect(wrapper.find('[data-streamdown="code-lang"]').text().toLowerCase()).toBe("ts");
+  });
+
+  it("renders markdown image and table action buttons", () => {
+    const message: AssistantMessage = {
+      id: "assistant-6",
+      role: "assistant",
+      content: `![Alt text](https://example.com/image.png)
+
+| Feature | Supported |
+| --- | --- |
+| Tables | ✅ |`,
+      timestamp: new Date(),
+    };
+
+    const wrapper = mountAssistantMessage(message);
+
+    expect(wrapper.find('button[title="Download image"]').exists()).toBe(true);
+    expect(wrapper.find('button[title="Copy table"]').exists()).toBe(true);
+    expect(wrapper.find('button[title="Download table"]').exists()).toBe(true);
+  });
 });

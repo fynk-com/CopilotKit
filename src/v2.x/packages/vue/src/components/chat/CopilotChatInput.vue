@@ -14,6 +14,8 @@ const props = withDefaults(
     showDisclaimer?: boolean;
     isRunning?: boolean;
     showStopButton?: boolean;
+    enableAddFile?: boolean;
+    enableStartTranscribe?: boolean;
   }>(),
   {
     disabled: false,
@@ -22,6 +24,8 @@ const props = withDefaults(
     showDisclaimer: true,
     isRunning: false,
     showStopButton: true,
+    enableAddFile: undefined,
+    enableStartTranscribe: undefined,
   },
 );
 
@@ -57,8 +61,10 @@ function hasListener(listenerName: string) {
   return !!listener;
 }
 
-const hasAddFileAction = computed(() => hasListener("onAddFile"));
-const hasStartTranscribeAction = computed(() => hasListener("onStartTranscribe"));
+const hasAddFileAction = computed(() => props.enableAddFile ?? hasListener("onAddFile"));
+const hasStartTranscribeAction = computed(
+  () => props.enableStartTranscribe ?? hasListener("onStartTranscribe"),
+);
 
 watch(
   () => props.modelValue,

@@ -8,6 +8,12 @@ Vue 3 bindings for CopilotKit2: providers, composables, and chat rendering primi
 pnpm add @copilotkitnext/vue @copilotkitnext/core
 ```
 
+Import package styles once in your app entry:
+
+```ts
+import "@copilotkitnext/vue/styles.css";
+```
+
 ## Basic Usage
 
 ```vue
@@ -75,7 +81,8 @@ Supported tool-level slots:
 
 - **Providers**: `CopilotKitProvider`, `CopilotChatConfigurationProvider`
 - **Composables**: `useCopilotKit`, `useCopilotChatConfiguration`, `useAgent`, `useAgentContext`, `useFrontendTool`, `useHumanInTheLoop`, `useSuggestions`, `useConfigureSuggestions`
-- **Components**: `CopilotChatAssistantMessage`, `CopilotChatUserMessage`, `CopilotChatMessageView`, `CopilotChatToolCallsView`, `CopilotChatInput`, `MCPAppsActivityRenderer`
+- **Components**: `CopilotChatAssistantMessage`, `CopilotChatUserMessage`, `CopilotChatMessageView`, `CopilotChatSuggestionPill`, `CopilotChatSuggestionView`, `CopilotChatInput`, `CopilotChatView`, `CopilotChatToolCallsView`, `MCPAppsActivityRenderer`
+- **Markdown Renderer**: `CopilotChatAssistantMessage` uses `streamdown-vue` (with KaTeX support)
 - **Core**: `CopilotKitCoreVue`
 
 ## Icon Foundation (Internal)

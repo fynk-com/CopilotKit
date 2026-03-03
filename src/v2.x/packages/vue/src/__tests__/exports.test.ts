@@ -8,6 +8,9 @@ describe("package exports", () => {
     expect(typeof VuePackage.CopilotChatInput).toBe("object");
     expect(typeof VuePackage.CopilotChatAssistantMessage).toBe("object");
     expect(typeof VuePackage.CopilotChatUserMessage).toBe("object");
+    expect(typeof VuePackage.CopilotChatSuggestionPill).toBe("object");
+    expect(typeof VuePackage.CopilotChatSuggestionView).toBe("object");
+    expect(typeof VuePackage.CopilotChatView).toBe("object");
     expect(VuePackage.MCPAppsActivityType).toBe("mcp-apps");
     expect(typeof VuePackage.MCPAppsActivityRenderer).toBe("object");
   });

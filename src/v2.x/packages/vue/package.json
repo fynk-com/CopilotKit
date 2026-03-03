@@ -10,7 +10,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    }
+    },
+    "./styles.css": "./dist/vue.css"
   },
   "publishConfig": {
     "access": "public"
@@ -29,17 +30,17 @@
     "@copilotkitnext/eslint-config": "workspace:*",
     "@copilotkitnext/typescript-config": "workspace:*",
     "@testing-library/vue": "^8.1.0",
-    "@vue/test-utils": "^2.4.6",
     "@types/node": "^22.15.3",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/compiler-sfc": "^3.5.14",
-    "vue-tsc": "^2.1.10",
+    "@vue/test-utils": "^2.4.6",
     "eslint": "^9.30.0",
     "jsdom": "^26.1.0",
     "typescript": "5.8.2",
     "vite": "^6.0.0",
     "vitest": "^3.2.4",
-    "vue": "^3.5.14"
+    "vue": "^3.5.28",
+    "vue-tsc": "^2.1.10"
   },
   "dependencies": {
     "@ag-ui/client": "0.0.42",
@@ -47,7 +48,9 @@
     "@copilotkitnext/core": "workspace:*",
     "@copilotkitnext/shared": "workspace:*",
     "@copilotkitnext/web-inspector": "workspace:*",
+    "katex": "^0.16.27",
     "lucide-vue-next": "^0.525.0",
+    "streamdown-vue": "^1.0.29",
     "zod": "^3.25.75"
   },
   "peerDependencies": {

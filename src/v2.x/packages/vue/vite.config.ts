@@ -24,6 +24,8 @@ export default defineConfig({
         "@copilotkitnext/core",
         "@copilotkitnext/shared",
         "@copilotkitnext/web-inspector",
+        "streamdown-vue",
+        "katex",
         "lucide-vue-next",
         "zod",
       ],
