@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import * as VuePackage from "../index";
 
@@ -13,5 +14,13 @@ describe("package exports", () => {
     expect(typeof VuePackage.CopilotChatView).toBe("object");
     expect(VuePackage.MCPAppsActivityType).toBe("mcp-apps");
     expect(typeof VuePackage.MCPAppsActivityRenderer).toBe("object");
+  });
+
+  it("exports the vue stylesheet entrypoint", () => {
+    const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+      exports?: Record<string, unknown>;
+    };
+
+    expect(packageJson.exports?.["./styles.css"]).toBe("./dist/styles.css");
   });
 });
