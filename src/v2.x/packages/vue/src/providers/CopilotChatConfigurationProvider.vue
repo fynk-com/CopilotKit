@@ -40,7 +40,8 @@ const initialVNodeProps = getCurrentInstance()?.vnode.props ?? {};
 const shouldCreateModalState = Object.prototype.hasOwnProperty.call(
   initialVNodeProps,
   "isModalDefaultOpen",
-);
+)
+  || Object.prototype.hasOwnProperty.call(initialVNodeProps, "is-modal-default-open");
 const resolvedDefaultOpen = props.isModalDefaultOpen ?? true;
 
 const internalModalOpen = ref<boolean>(

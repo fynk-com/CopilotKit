@@ -122,6 +122,25 @@ describe("CopilotChatConfigurationProvider", () => {
     expect(wrapper.find("[data-testid=modal]").text()).toBe("false");
   });
 
+  it("creates modal state when isModalDefaultOpen is passed through template bindings", () => {
+    const Display = makeDisplay();
+    const TemplateWrapper = defineComponent({
+      components: { CopilotChatConfigurationProvider, Display },
+      template: `
+        <CopilotChatConfigurationProvider
+          thread-id="thread-1"
+          :is-modal-default-open="true"
+        >
+          <Display />
+        </CopilotChatConfigurationProvider>
+      `,
+    });
+
+    const wrapper = mount(TemplateWrapper);
+
+    expect(wrapper.find("[data-testid=modal]").text()).toBe("true");
+  });
+
   it("inherits modal state from parent when child does not define isModalDefaultOpen", async () => {
     const ChildDisplay = defineComponent({
       setup() {

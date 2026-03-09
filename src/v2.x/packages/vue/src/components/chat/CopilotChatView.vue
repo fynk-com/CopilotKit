@@ -8,24 +8,13 @@ import { IconChevronDown } from "../icons";
 import CopilotChatInput from "./CopilotChatInput.vue";
 import CopilotChatMessageView from "./CopilotChatMessageView.vue";
 import CopilotChatSuggestionView from "./CopilotChatSuggestionView.vue";
-import type { CopilotChatInputMode, ToolsMenuItem } from "./types";
+import type { CopilotChatInputMode, CopilotChatViewProps, ToolsMenuItem } from "./types";
 
 const FEATHER_HEIGHT = 96;
 const SCROLL_BOTTOM_THRESHOLD = 12;
 
 const props = withDefaults(
-  defineProps<{
-    messages?: Message[];
-    autoScroll?: boolean;
-    isRunning?: boolean;
-    suggestions?: Suggestion[];
-    suggestionLoadingIndexes?: ReadonlyArray<number>;
-    welcomeScreen?: boolean;
-    inputValue?: string;
-    inputMode?: CopilotChatInputMode;
-    inputToolsMenu?: (ToolsMenuItem | "-")[];
-    onFinishTranscribeWithAudio?: (audioBlob: Blob) => void | Promise<void>;
-  }>(),
+  defineProps<CopilotChatViewProps>(),
   {
     messages: () => [],
     autoScroll: true,
