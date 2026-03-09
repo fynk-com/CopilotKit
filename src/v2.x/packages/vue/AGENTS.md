@@ -46,6 +46,9 @@ This file defines how agents should keep `@copilotkitnext/vue` aligned with upst
 - Chat render parity contract:
   - follow the architectural decision in `src/v2.x/packages/vue/README.md` section `Architectural Decision: Render APIs -> Slots`;
   - translate React render props/hooks into Vue named/scoped slots deterministically;
+  - prefer Vue emits for component-level UI interactions and do not expose a duplicated callback prop plus emit for the same public interaction;
+  - keep callback functions inside slot payloads for imperative slotted actions;
+  - only keep public callback props for true command-style flows that must be awaited by the child (current exception: `CopilotChatView.onFinishTranscribeWithAudio`);
   - do not re-introduce provider-level `render*` props in Vue unless the ADR is explicitly changed.
 
 ## Testing parity strategy

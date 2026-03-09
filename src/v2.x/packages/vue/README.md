@@ -172,5 +172,11 @@ Deterministic rules:
 3. Keep built-in MCP apps fallback behavior:
    If no matching slot handles `mcp-apps`, render `MCPAppsActivityRenderer`.
 4. Keep slot payloads stable and parity-tested against React behavior (not component internals).
+5. Keep public Vue interaction APIs idiomatic:
+   Use emits for component-level UI interactions such as `@submit-message`, `@input-change`, `@select-suggestion`, `@edit-message`, `@switch-to-branch`, `@thumbs-up`, `@thumbs-down`, `@read-aloud`, and `@regenerate`.
+6. Keep slot payload actions imperative:
+   Use slot payload callbacks such as `onCopy`, `onEdit`, `goPrev`, `goNext`, and `onSubmitMessage` for slotted control surfaces.
+7. Only keep public callback props for true command-style flows that must be awaited by the child:
+   Current exception: `CopilotChatView.onFinishTranscribeWithAudio`.
 
 This is an architectural constraint for future parity work: new React render-hook behavior should be mirrored by extending slot contracts, not by re-introducing provider render props in Vue.
