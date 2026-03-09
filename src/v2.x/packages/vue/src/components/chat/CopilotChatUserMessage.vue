@@ -1,49 +1,53 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from "vue";
+import { computed, getCurrentInstance, onBeforeUnmount, ref } from "vue";
 import type { UserMessage } from "@ag-ui/core";
 import { useCopilotChatConfiguration } from "../../providers/useCopilotChatConfiguration";
 import { CopilotChatDefaultLabels } from "../../providers/types";
 import { IconCheck, IconChevronLeft, IconChevronRight, IconCopy, IconEdit } from "../icons";
-
-interface OnEditMessageProps {
-  message: UserMessage;
-}
-
-interface OnSwitchToBranchProps {
-  message: UserMessage;
-  branchIndex: number;
-  numberOfBranches: number;
-}
+import type {
+  CopilotChatUserMessageBranchNavigationSlotProps,
+  CopilotChatUserMessageCopyButtonSlotProps,
+  CopilotChatUserMessageEditButtonSlotProps,
+  CopilotChatUserMessageLayoutSlotProps,
+  CopilotChatUserMessageMessageRendererSlotProps,
+  CopilotChatUserMessageOnEditMessageProps,
+  CopilotChatUserMessageOnSwitchToBranchProps,
+  CopilotChatUserMessageToolbarSlotProps,
+} from "./types";
 
 const props = withDefaults(
   defineProps<{
     message: UserMessage;
     branchIndex?: number;
     numberOfBranches?: number;
-    onEditMessage?: (props: OnEditMessageProps) => void;
-    onSwitchToBranch?: (props: OnSwitchToBranchProps) => void;
   }>(),
   {
     branchIndex: 0,
     numberOfBranches: 1,
-    onEditMessage: undefined,
-    onSwitchToBranch: undefined,
   },
 );
 
 defineSlots<{
+  "message-renderer"?: (props: CopilotChatUserMessageMessageRendererSlotProps) => unknown;
+  toolbar?: (props: CopilotChatUserMessageToolbarSlotProps) => unknown;
+  "copy-button"?: (props: CopilotChatUserMessageCopyButtonSlotProps) => unknown;
+  "edit-button"?: (props: CopilotChatUserMessageEditButtonSlotProps) => unknown;
+  "branch-navigation"?: (props: CopilotChatUserMessageBranchNavigationSlotProps) => unknown;
+  layout?: (props: CopilotChatUserMessageLayoutSlotProps) => unknown;
   "toolbar-items"?: () => unknown;
 }>();
 
 const emit = defineEmits<{
-  "edit-message": [payload: OnEditMessageProps];
-  "switch-to-branch": [payload: OnSwitchToBranchProps];
+  "edit-message": [payload: CopilotChatUserMessageOnEditMessageProps];
+  "switch-to-branch": [payload: CopilotChatUserMessageOnSwitchToBranchProps];
 }>();
 
 const config = useCopilotChatConfiguration();
 const labels = computed(() => config.value?.labels ?? CopilotChatDefaultLabels);
+const instance = getCurrentInstance();
 const copied = ref(false);
 let copiedResetTimeout: ReturnType<typeof setTimeout> | null = null;
+const vnodeProps = computed(() => (instance?.vnode.props ?? {}) as Record<string, unknown>);
 
 const toolbarButtonClass = [
   "inline-flex h-8 w-8 items-center justify-center rounded-md p-0",
@@ -80,10 +84,16 @@ function flattenUserMessageContent(content?: UserMessage["content"]): string {
 
 const flattenedContent = computed(() => flattenUserMessageContent(props.message.content));
 const isMultiline = computed(() => flattenedContent.value.includes("\n"));
-const hasEditAction = computed(() => typeof props.onEditMessage === "function");
-const showBranchNavigation = computed(
-  () => props.numberOfBranches > 1 && !!props.onSwitchToBranch,
-);
+function hasListener(listenerName: string) {
+  const listener = vnodeProps.value[listenerName];
+  if (Array.isArray(listener)) {
+    return listener.length > 0;
+  }
+  return !!listener;
+}
+
+const hasEditAction = computed(() => hasListener("onEditMessage"));
+const showBranchNavigation = computed(() => props.numberOfBranches > 1 && hasListener("onSwitchToBranch"));
 
 const canGoPrev = computed(() => props.branchIndex > 0);
 const canGoNext = computed(() => props.branchIndex < props.numberOfBranches - 1);
@@ -115,19 +125,37 @@ async function handleCopyMessage() {
 }
 
 function handleEditMessage() {
+  if (!hasEditAction.value) {
+    return;
+  }
   const payload = { message: props.message };
-  props.onEditMessage?.(payload);
   emit("edit-message", payload);
 }
 
 function switchToBranch(branchIndex: number) {
+  if (!showBranchNavigation.value) {
+    return;
+  }
   const payload = {
     branchIndex,
     numberOfBranches: props.numberOfBranches,
     message: props.message,
   };
-  props.onSwitchToBranch?.(payload);
   emit("switch-to-branch", payload);
+}
+
+function goPrev() {
+  if (!canGoPrev.value) {
+    return;
+  }
+  switchToBranch(props.branchIndex - 1);
+}
+
+function goNext() {
+  if (!canGoNext.value) {
+    return;
+  }
+  switchToBranch(props.branchIndex + 1);
 }
 
 onBeforeUnmount(() => {
@@ -138,69 +166,125 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-col items-end group pt-10" :data-message-id="message.id" v-bind="$attrs">
-    <div
-      class="prose dark:prose-invert bg-muted relative max-w-[80%] rounded-[18px] px-4 py-1.5 inline-block whitespace-pre-wrap"
-      :data-multiline="isMultiline ? 'true' : undefined"
-      :class="{ 'py-3': isMultiline }"
-    >
-      {{ flattenedContent }}
-    </div>
-
-    <div class="w-full bg-transparent flex items-center justify-end -mr-[5px] mt-[4px] invisible group-hover:visible">
-      <div class="flex items-center gap-1 justify-end">
-        <slot name="toolbar-items" />
-
-        <button
-          type="button"
-          :class="toolbarButtonClass"
-          :aria-label="labels.userMessageToolbarCopyMessageLabel"
-          :title="labels.userMessageToolbarCopyMessageLabel"
-          @click="handleCopyMessage"
+  <slot
+    name="layout"
+    :message="message"
+    :content="flattenedContent"
+    :is-multiline="isMultiline"
+    :show-branch-navigation="showBranchNavigation"
+    :has-edit-action="hasEditAction"
+    :branch-index="branchIndex"
+    :number-of-branches="numberOfBranches"
+    :can-go-prev="canGoPrev"
+    :can-go-next="canGoNext"
+    :on-copy="handleCopyMessage"
+    :on-edit="handleEditMessage"
+    :go-prev="goPrev"
+    :go-next="goNext"
+    :copied="copied"
+  >
+    <div class="flex flex-col items-end group pt-10" :data-message-id="message.id" v-bind="$attrs">
+      <slot
+        name="message-renderer"
+        :message="message"
+        :content="flattenedContent"
+        :is-multiline="isMultiline"
+      >
+        <div
+          class="prose dark:prose-invert bg-muted relative max-w-[80%] rounded-[18px] px-4 py-1.5 inline-block whitespace-pre-wrap"
+          :data-multiline="isMultiline ? 'true' : undefined"
+          :class="{ 'py-3': isMultiline }"
         >
-          <IconCheck v-if="copied" class="size-[18px]" />
-          <IconCopy v-else class="size-[18px]" />
-        </button>
-
-        <button
-          v-if="hasEditAction"
-          type="button"
-          :class="toolbarButtonClass"
-          :aria-label="labels.userMessageToolbarEditMessageLabel"
-          :title="labels.userMessageToolbarEditMessageLabel"
-          @click="handleEditMessage"
-        >
-          <IconEdit class="size-[18px]" />
-        </button>
-
-        <div v-if="showBranchNavigation" class="flex items-center gap-1">
-          <button
-            type="button"
-            :class="toolbarButtonClass"
-            class="h-6 w-6 p-0"
-            :disabled="!canGoPrev"
-            aria-label="Previous branch"
-            title="Previous branch"
-            @click="switchToBranch(branchIndex - 1)"
-          >
-            <IconChevronLeft class="size-[20px]" />
-          </button>
-          <span class="text-sm text-muted-foreground px-0 font-medium">
-            {{ branchIndex + 1 }}/{{ numberOfBranches }}
-          </span>
-          <button
-            type="button"
-            :class="toolbarButtonClass"
-            class="h-6 w-6 p-0"
-            :disabled="!canGoNext"
-            aria-label="Next branch"
-            title="Next branch"
-            @click="switchToBranch(branchIndex + 1)"
-          >
-            <IconChevronRight class="size-[20px]" />
-          </button>
+          {{ flattenedContent }}
         </div>
-      </div>
+      </slot>
+
+      <slot
+        name="toolbar"
+        :message="message"
+        :show-branch-navigation="showBranchNavigation"
+        :has-edit-action="hasEditAction"
+      >
+        <div class="w-full bg-transparent flex items-center justify-end -mr-[5px] mt-[4px] invisible group-hover:visible">
+          <div class="flex items-center gap-1 justify-end">
+            <slot name="toolbar-items" />
+
+            <slot
+              name="copy-button"
+              :on-copy="handleCopyMessage"
+              :copied="copied"
+              :label="labels.userMessageToolbarCopyMessageLabel"
+            >
+              <button
+                type="button"
+                :class="toolbarButtonClass"
+                :aria-label="labels.userMessageToolbarCopyMessageLabel"
+                :title="labels.userMessageToolbarCopyMessageLabel"
+                @click="handleCopyMessage"
+              >
+                <IconCheck v-if="copied" class="size-[18px]" />
+                <IconCopy v-else class="size-[18px]" />
+              </button>
+            </slot>
+
+            <slot
+              v-if="hasEditAction"
+              name="edit-button"
+              :on-edit="handleEditMessage"
+              :label="labels.userMessageToolbarEditMessageLabel"
+            >
+              <button
+                type="button"
+                :class="toolbarButtonClass"
+                :aria-label="labels.userMessageToolbarEditMessageLabel"
+                :title="labels.userMessageToolbarEditMessageLabel"
+                @click="handleEditMessage"
+              >
+                <IconEdit class="size-[18px]" />
+              </button>
+            </slot>
+
+            <slot
+              v-if="showBranchNavigation"
+              name="branch-navigation"
+              :branch-index="branchIndex"
+              :number-of-branches="numberOfBranches"
+              :can-go-prev="canGoPrev"
+              :can-go-next="canGoNext"
+              :go-prev="goPrev"
+              :go-next="goNext"
+            >
+              <div class="flex items-center gap-1">
+                <button
+                  type="button"
+                  :class="toolbarButtonClass"
+                  class="h-6 w-6 p-0"
+                  :disabled="!canGoPrev"
+                  aria-label="Previous branch"
+                  title="Previous branch"
+                  @click="goPrev"
+                >
+                  <IconChevronLeft class="size-[20px]" />
+                </button>
+                <span class="text-sm text-muted-foreground px-0 font-medium">
+                  {{ branchIndex + 1 }}/{{ numberOfBranches }}
+                </span>
+                <button
+                  type="button"
+                  :class="toolbarButtonClass"
+                  class="h-6 w-6 p-0"
+                  :disabled="!canGoNext"
+                  aria-label="Next branch"
+                  title="Next branch"
+                  @click="goNext"
+                >
+                  <IconChevronRight class="size-[20px]" />
+                </button>
+              </div>
+            </slot>
+          </div>
+        </div>
+      </slot>
     </div>
-  </div>
+  </slot>
 </template>

@@ -154,8 +154,8 @@ export const Default: Story = {
                       :message="message"
                       :messages="allMessages"
                       :is-running="running"
-                      :on-thumbs-up="handleThumbsUp"
-                      :on-thumbs-down="handleThumbsDown"
+                      @thumbs-up="handleThumbsUp"
+                      @thumbs-down="handleThumbsDown"
                     />
                   </template>
                 </CopilotChatMessageView>
@@ -228,8 +228,8 @@ export const WithSuggestions: Story = {
                       :message="message"
                       :messages="allMessages"
                       :is-running="running"
-                      :on-thumbs-up="handleThumbsUp"
-                      :on-thumbs-down="handleThumbsDown"
+                      @thumbs-up="handleThumbsUp"
+                      @thumbs-down="handleThumbsDown"
                     />
                   </template>
                 </CopilotChatMessageView>

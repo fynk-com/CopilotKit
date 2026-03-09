@@ -37,7 +37,7 @@ describe("CopilotChatSuggestionView", () => {
     expect(disabledButtons).toHaveLength(2);
   });
 
-  it("calls callback and emits select-suggestion with suggestion and index", async () => {
+  it("emits select-suggestion exactly once with suggestion and index", async () => {
     const onSelectSuggestion = vi.fn();
     const wrapper = mount(CopilotChatSuggestionView, {
       props: {
@@ -49,6 +49,7 @@ describe("CopilotChatSuggestionView", () => {
     const buttons = wrapper.findAll("button[data-testid='copilot-chat-suggestion-pill']");
     await buttons[1]?.trigger("click");
 
+    expect(onSelectSuggestion).toHaveBeenCalledTimes(1);
     expect(onSelectSuggestion).toHaveBeenCalledWith(suggestions[1], 1);
     expect(wrapper.emitted("select-suggestion")?.[0]).toEqual([suggestions[1], 1]);
   });
@@ -77,6 +78,7 @@ describe("CopilotChatSuggestionView", () => {
     const customButtons = wrapper.findAll("[data-testid^='custom-pill-']");
     expect(customButtons).toHaveLength(3);
     await customButtons[0]?.trigger("click");
+    expect(onSelectSuggestion).toHaveBeenCalledTimes(1);
     expect(onSelectSuggestion).toHaveBeenCalledWith(suggestions[0], 0);
   });
 });

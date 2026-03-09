@@ -291,20 +291,39 @@ const meta = {
       CopilotChatAssistantMessage,
     },
     setup() {
+      const handleThumbsUp = () => console.log("Thumbs up clicked!");
+      const handleThumbsDown = () => console.log("Thumbs down clicked!");
+      const handleReadAloud = () => console.log("Read aloud clicked!");
+      const handleRegenerate = () => console.log("Regenerate clicked!");
       const onCustomButton1 = () => {
         window.alert("Custom button 1 clicked!");
       };
       const onCustomButton2 = () => {
         window.alert("Custom button 2 clicked!");
       };
-      return { args, onCustomButton1, onCustomButton2 };
+      return {
+        args,
+        handleThumbsUp,
+        handleThumbsDown,
+        handleReadAloud,
+        handleRegenerate,
+        onCustomButton1,
+        onCustomButton2,
+      };
     },
     template: `
       <div style="display:flex; justify-content:center; align-items:flex-start; min-height:100vh; padding:16px">
         <div style="width:100%; max-width:640px">
           <CopilotKitProvider runtime-url="https://copilotkit.ai">
             <CopilotChatConfigurationProvider thread-id="storybook-thread">
-              <CopilotChatAssistantMessage v-bind="args" :messages="[args.message]" />
+              <CopilotChatAssistantMessage
+                v-bind="args"
+                :messages="[args.message]"
+                @thumbs-up="handleThumbsUp"
+                @thumbs-down="handleThumbsDown"
+                @read-aloud="handleReadAloud"
+                @regenerate="handleRegenerate"
+              />
             </CopilotChatConfigurationProvider>
           </CopilotKitProvider>
         </div>
@@ -313,10 +332,6 @@ const meta = {
   }),
   args: {
     message: simpleMessage,
-    onThumbsUp: () => console.log("Thumbs up clicked!"),
-    onThumbsDown: () => console.log("Thumbs down clicked!"),
-    onReadAloud: () => console.log("Read aloud clicked!"),
-    onRegenerate: () => console.log("Regenerate clicked!"),
   },
 } satisfies Meta<typeof CopilotChatAssistantMessage>;
 
@@ -334,11 +349,39 @@ export const TestAllMarkdownFeatures: Story = {
 export const WithToolbarButtons: Story = {
   args: {
     message: simpleMessage,
-    onThumbsUp: () => window.alert("Thumbs up clicked!"),
-    onThumbsDown: () => window.alert("Thumbs down clicked!"),
-    onReadAloud: () => window.alert("Read aloud clicked!"),
-    onRegenerate: () => window.alert("Regenerate clicked!"),
   },
+  render: (args: Story["args"]) => ({
+    components: {
+      CopilotKitProvider,
+      CopilotChatConfigurationProvider,
+      CopilotChatAssistantMessage,
+    },
+    setup() {
+      const handleThumbsUp = () => window.alert("Thumbs up clicked!");
+      const handleThumbsDown = () => window.alert("Thumbs down clicked!");
+      const handleReadAloud = () => window.alert("Read aloud clicked!");
+      const handleRegenerate = () => window.alert("Regenerate clicked!");
+      return { args, handleThumbsUp, handleThumbsDown, handleReadAloud, handleRegenerate };
+    },
+    template: `
+      <div style="display:flex; justify-content:center; align-items:flex-start; min-height:100vh; padding:16px">
+        <div style="width:100%; max-width:640px">
+          <CopilotKitProvider runtime-url="https://copilotkit.ai">
+            <CopilotChatConfigurationProvider thread-id="storybook-thread">
+              <CopilotChatAssistantMessage
+                v-bind="args"
+                :messages="[args.message]"
+                @thumbs-up="handleThumbsUp"
+                @thumbs-down="handleThumbsDown"
+                @read-aloud="handleReadAloud"
+                @regenerate="handleRegenerate"
+              />
+            </CopilotChatConfigurationProvider>
+          </CopilotKitProvider>
+        </div>
+      </div>
+    `,
+  }),
 };
 
 export const WithAdditionalToolbarItems: Story = {
@@ -349,20 +392,39 @@ export const WithAdditionalToolbarItems: Story = {
       CopilotChatAssistantMessage,
     },
     setup() {
+      const handleThumbsUp = () => console.log("Thumbs up clicked!");
+      const handleThumbsDown = () => console.log("Thumbs down clicked!");
+      const handleReadAloud = () => console.log("Read aloud clicked!");
+      const handleRegenerate = () => console.log("Regenerate clicked!");
       const onCustomButton1 = () => {
         window.alert("Custom button 1 clicked!");
       };
       const onCustomButton2 = () => {
         window.alert("Custom button 2 clicked!");
       };
-      return { args, onCustomButton1, onCustomButton2 };
+      return {
+        args,
+        handleThumbsUp,
+        handleThumbsDown,
+        handleReadAloud,
+        handleRegenerate,
+        onCustomButton1,
+        onCustomButton2,
+      };
     },
     template: `
       <div style="display:flex; justify-content:center; align-items:flex-start; min-height:100vh; padding:16px">
         <div style="width:100%; max-width:640px">
           <CopilotKitProvider runtime-url="https://copilotkit.ai">
             <CopilotChatConfigurationProvider thread-id="storybook-thread">
-              <CopilotChatAssistantMessage v-bind="args" :messages="[args.message]">
+              <CopilotChatAssistantMessage
+                v-bind="args"
+                :messages="[args.message]"
+                @thumbs-up="handleThumbsUp"
+                @thumbs-down="handleThumbsDown"
+                @read-aloud="handleReadAloud"
+                @regenerate="handleRegenerate"
+              >
                 <template #toolbar-items>
                   <button
                     type="button"
@@ -390,10 +452,6 @@ export const WithAdditionalToolbarItems: Story = {
   }),
   args: {
     message: simpleMessage,
-    onThumbsUp: () => console.log("Thumbs up clicked!"),
-    onThumbsDown: () => console.log("Thumbs down clicked!"),
-    onReadAloud: () => console.log("Read aloud clicked!"),
-    onRegenerate: () => console.log("Regenerate clicked!"),
   },
 };
 

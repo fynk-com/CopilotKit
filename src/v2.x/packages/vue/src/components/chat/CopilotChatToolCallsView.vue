@@ -3,15 +3,7 @@ import type { AssistantMessage, Message, ToolCall, ToolMessage } from "@ag-ui/co
 import { ToolCallStatus } from "@copilotkitnext/core";
 import { partialJSONParse } from "@copilotkitnext/shared";
 import { useCopilotKit } from "../../providers/useCopilotKit";
-
-interface ToolCallRenderProps {
-  name: string;
-  args: unknown;
-  status: ToolCallStatus;
-  result: string | undefined;
-  toolCall: ToolCall;
-  toolMessage: ToolMessage | undefined;
-}
+import type { CopilotChatToolCallRenderSlotProps } from "./types";
 
 const props = withDefaults(
   defineProps<{
@@ -24,8 +16,8 @@ const props = withDefaults(
 );
 
 defineSlots<{
-  "tool-call"?: (props: ToolCallRenderProps) => unknown;
-  [key: `tool-call-${string}`]: (props: ToolCallRenderProps) => unknown;
+  "tool-call"?: (props: CopilotChatToolCallRenderSlotProps) => unknown;
+  [key: `tool-call-${string}`]: (props: CopilotChatToolCallRenderSlotProps) => unknown;
 }>();
 
 const { executingToolCallIds } = useCopilotKit();
@@ -40,7 +32,7 @@ function getSlotName(toolName: string): `tool-call-${string}` {
   return `tool-call-${toolName}`;
 }
 
-function getRenderProps(toolCall: ToolCall): ToolCallRenderProps {
+function getRenderProps(toolCall: ToolCall): CopilotChatToolCallRenderSlotProps {
   const toolMessage = findToolMessage(toolCall.id);
   const parsedArgs = partialJSONParse(toolCall.function.arguments);
 

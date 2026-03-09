@@ -9,11 +9,9 @@ const props = withDefaults(
   defineProps<{
     suggestions: Suggestion[];
     loadingIndexes?: ReadonlyArray<number>;
-    onSelectSuggestion?: (suggestion: Suggestion, index: number) => void;
   }>(),
   {
     loadingIndexes: () => [],
-    onSelectSuggestion: undefined,
   },
 );
 
@@ -46,7 +44,6 @@ function isLoading(index: number, suggestion: Suggestion) {
 }
 
 function handleSelectSuggestion(suggestion: Suggestion, index: number) {
-  props.onSelectSuggestion?.(suggestion, index);
   emit("select-suggestion", suggestion, index);
 }
 </script>

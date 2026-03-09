@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { h } from "vue";
 import { mount } from "@vue/test-utils";
-import type { Message } from "@ag-ui/core";
+import type { AssistantMessage, Message, UserMessage } from "@ag-ui/core";
 import type { Suggestion } from "@copilotkitnext/core";
 import CopilotKitProvider from "../../../providers/CopilotKitProvider.vue";
 import CopilotChatConfigurationProvider from "../../../providers/CopilotChatConfigurationProvider.vue";
+import CopilotChatAssistantMessage from "../CopilotChatAssistantMessage.vue";
+import CopilotChatMessageView from "../CopilotChatMessageView.vue";
+import CopilotChatUserMessage from "../CopilotChatUserMessage.vue";
 import CopilotChatView from "../CopilotChatView.vue";
 
 const chatMessages: Message[] = [
@@ -29,6 +32,7 @@ const suggestions: Suggestion[] = [
 
 function mountChatView(
   props: Record<string, unknown> = {},
+  slots: Parameters<typeof h>[2] = {},
 ) {
   return mount(CopilotKitProvider, {
     props: {
@@ -47,7 +51,7 @@ function mountChatView(
             },
           },
           {
-            default: () => h(CopilotChatView, props),
+            default: () => h(CopilotChatView, props, slots),
           },
         ),
     },
@@ -88,7 +92,9 @@ describe("CopilotChatView", () => {
     await textarea.setValue("   hello from vue chat view   ");
     await textarea.trigger("keydown", { key: "Enter" });
 
+    expect(onInputChange).toHaveBeenCalledTimes(2);
     expect(onInputChange).toHaveBeenCalledWith("   hello from vue chat view   ");
+    expect(onSubmitMessage).toHaveBeenCalledTimes(1);
     expect(onSubmitMessage).toHaveBeenCalledWith("hello from vue chat view");
 
     const chatViewWrapper = wrapper.findComponent(CopilotChatView);
@@ -111,6 +117,7 @@ describe("CopilotChatView", () => {
 
     await suggestionButtons[1]?.trigger("click");
 
+    expect(onSelectSuggestion).toHaveBeenCalledTimes(1);
     expect(onSelectSuggestion).toHaveBeenCalledWith(suggestions[1], 1);
     const chatViewWrapper = wrapper.findComponent(CopilotChatView);
     expect(chatViewWrapper.emitted("select-suggestion")?.at(0)).toEqual([suggestions[1], 1]);
@@ -136,7 +143,7 @@ describe("CopilotChatView", () => {
     const startTranscribeButton = wrapper.get("[data-testid='copilot-chat-input-start-transcribe']");
     await startTranscribeButton.trigger("click");
 
-    expect(onStartTranscribe).toHaveBeenCalled();
+    expect(onStartTranscribe).toHaveBeenCalledTimes(1);
     const chatViewWrapper = wrapper.findComponent(CopilotChatView);
     expect(chatViewWrapper.emitted("start-transcribe")?.length).toBe(1);
   });
@@ -154,16 +161,73 @@ describe("CopilotChatView", () => {
     });
 
     await wrapper.get("[data-testid='copilot-chat-input-cancel-transcribe']").trigger("click");
-    expect(onCancelTranscribe.mock.calls.length).toBeGreaterThanOrEqual(1);
+    expect(onCancelTranscribe).toHaveBeenCalledTimes(1);
 
     await new Promise((resolve) => setTimeout(resolve, 0));
     await wrapper.get("[data-testid='copilot-chat-input-finish-transcribe']").trigger("click");
-    expect(onFinishTranscribe.mock.calls.length).toBeGreaterThanOrEqual(1);
-    expect(onFinishTranscribeWithAudio.mock.calls.length).toBeGreaterThanOrEqual(1);
+    expect(onFinishTranscribe).toHaveBeenCalledTimes(1);
+    expect(onFinishTranscribeWithAudio).toHaveBeenCalledTimes(1);
 
     const chatViewWrapper = wrapper.findComponent(CopilotChatView);
-    expect((chatViewWrapper.emitted("cancel-transcribe")?.length ?? 0)).toBeGreaterThanOrEqual(1);
-    expect((chatViewWrapper.emitted("finish-transcribe")?.length ?? 0)).toBeGreaterThanOrEqual(1);
-    expect((chatViewWrapper.emitted("finish-transcribe-with-audio")?.length ?? 0)).toBeGreaterThanOrEqual(1);
+    expect(chatViewWrapper.emitted("cancel-transcribe")?.length ?? 0).toBe(1);
+    expect(chatViewWrapper.emitted("finish-transcribe")?.length ?? 0).toBe(1);
+    expect(chatViewWrapper.emitted("finish-transcribe-with-audio")).toBeUndefined();
+  });
+
+  it("supports message-view drill-down slots for assistant and user customization", async () => {
+    const wrapper = mountChatView(
+      {
+        messages: chatMessages,
+      },
+      {
+        "message-view": ({ messages, isRunning }: { messages: Message[]; isRunning: boolean }) =>
+          h(
+            CopilotChatMessageView,
+            { messages, isRunning },
+            {
+              "assistant-message": ({
+                message,
+                messages: allMessages,
+                isRunning: running,
+              }: {
+                message: AssistantMessage;
+                messages: Message[];
+                isRunning: boolean;
+              }) =>
+                h(
+                  CopilotChatAssistantMessage,
+                  {
+                    message,
+                    messages: allMessages,
+                    isRunning: running,
+                    onThumbsUp: vi.fn(),
+                  },
+                  {
+                    "copy-button": ({ onCopy }: { onCopy: () => Promise<void> }) =>
+                      h(
+                        "button",
+                        { "data-testid": "chat-view-custom-assistant-copy", onClick: onCopy },
+                        "copy",
+                      ),
+                  },
+                ),
+              "user-message": ({ message }: { message: UserMessage }) =>
+                h(
+                  CopilotChatUserMessage,
+                  { message },
+                  {
+                    "message-renderer": ({ content }: { content: string }) =>
+                      h("div", { "data-testid": "chat-view-custom-user-message" }, content),
+                  },
+                ),
+            },
+          ),
+      },
+    );
+
+    expect(wrapper.find("[data-testid='chat-view-custom-assistant-copy']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='chat-view-custom-user-message']").text()).toBe("Hello");
+
+    await wrapper.get("[data-testid='chat-view-custom-assistant-copy']").trigger("click");
   });
 });

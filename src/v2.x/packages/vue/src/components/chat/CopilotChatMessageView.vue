@@ -204,7 +204,15 @@ function resolveToolMessage(message: Message, toolCallId: string): ToolMessage |
         name="user-message"
         :message="message"
       >
-        <CopilotChatUserMessage :message="message" />
+        <CopilotChatUserMessage :message="message">
+          <template
+            v-for="slotName in forwardedSlotNames"
+            :key="slotName"
+            #[slotName]="slotProps"
+          >
+            <slot :name="slotName" v-bind="slotProps" />
+          </template>
+        </CopilotChatUserMessage>
       </slot>
 
       <slot

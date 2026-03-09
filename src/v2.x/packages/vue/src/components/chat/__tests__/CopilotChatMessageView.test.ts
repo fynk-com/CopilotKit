@@ -94,6 +94,27 @@ describe("CopilotChatMessageView (Vue slots)", () => {
     expect(wrapper.find("[data-testid=activity-fallback]").text()).toBe("build-progress");
   });
 
+  it("prefers named activity slot over generic fallback slot", () => {
+    const messages: Message[] = [
+      {
+        id: "act-3",
+        role: "activity",
+        activityType: "search-progress",
+        content: { percent: 75 },
+      } as ActivityMessage,
+    ];
+
+    const wrapper = mountMessageView(messages, {
+      "activity-search-progress": () =>
+        h("div", { "data-testid": "activity-named-precedence" }, "named"),
+      "activity-message": () =>
+        h("div", { "data-testid": "activity-fallback-precedence" }, "fallback"),
+    });
+
+    expect(wrapper.find("[data-testid=activity-named-precedence]").text()).toBe("named");
+    expect(wrapper.find("[data-testid=activity-fallback-precedence]").exists()).toBe(false);
+  });
+
   it("renders built-in MCP fallback when no activity slot exists", async () => {
     const messages: Message[] = [
       {
@@ -112,6 +133,28 @@ describe("CopilotChatMessageView (Vue slots)", () => {
     await nextTick();
 
     expect(wrapper.text()).toContain("No agent available to fetch resource");
+  });
+
+  it("prefers generic activity slot over built-in MCP fallback", () => {
+    const messages: Message[] = [
+      {
+        id: "act-mcp-fallback",
+        role: "activity",
+        activityType: "mcp-apps",
+        content: {
+          resourceUri: "ui://server/dashboard",
+          serverHash: "abc123",
+          result: {},
+        },
+      } as ActivityMessage,
+    ];
+
+    const wrapper = mountMessageView(messages, {
+      "activity-message": () => h("div", { "data-testid": "generic-activity-over-mcp" }, "generic"),
+    });
+
+    expect(wrapper.find("[data-testid=generic-activity-over-mcp]").text()).toBe("generic");
+    expect(wrapper.text()).not.toContain("No agent available to fetch resource");
   });
 
   it("uses named tool slot over generic tool slot", () => {
@@ -280,5 +323,126 @@ describe("CopilotChatMessageView (Vue slots)", () => {
     });
 
     expect(wrapper.find("[data-testid=tool-executing]").text()).toBe("executing");
+  });
+
+  it("maps tool statuses across inProgress, executing, and complete", () => {
+    const baseMessage: AssistantMessage = {
+      id: "assistant-status-map",
+      role: "assistant",
+      content: "",
+      toolCalls: [
+        {
+          id: "tc-status",
+          type: "function",
+          function: {
+            name: "search_docs",
+            arguments: JSON.stringify({ query: "status" }),
+          },
+        },
+      ],
+    };
+
+    const inProgressWrapper = mountMessageView([baseMessage], {
+      "tool-call-search_docs": ({ status }: { status: string }) =>
+        h("div", { "data-testid": "status-value" }, status),
+    });
+    expect(inProgressWrapper.find("[data-testid=status-value]").text()).toBe("inProgress");
+
+    const SetExecuting = defineComponent({
+      setup() {
+        const { executingToolCallIds } = useCopilotKit();
+        executingToolCallIds.value = new Set(["tc-status"]);
+        return () => null;
+      },
+    });
+
+    const executingWrapper = mount(CopilotKitProvider, {
+      props: { runtimeUrl: "/api/copilotkit" },
+      slots: {
+        default: () =>
+          h(
+            CopilotChatConfigurationProvider,
+            { threadId: "thread-1", agentId: "default" },
+            {
+              default: () =>
+                h("div", [
+                  h(SetExecuting),
+                  h(
+                    CopilotChatMessageView,
+                    { messages: [baseMessage] },
+                    {
+                      "tool-call-search_docs": ({ status }: { status: string }) =>
+                        h("div", { "data-testid": "status-value" }, status),
+                    },
+                  ),
+                ]),
+            },
+          ),
+      },
+    });
+    expect(executingWrapper.find("[data-testid=status-value]").text()).toBe("executing");
+
+    const completeWrapper = mountMessageView(
+      [
+        baseMessage,
+        {
+          id: "tool-status-result",
+          role: "tool",
+          toolCallId: "tc-status",
+          content: "done",
+        } as ToolMessage,
+      ],
+      {
+        "tool-call-search_docs": ({ status }: { status: string }) =>
+          h("div", { "data-testid": "status-value" }, status),
+      },
+    );
+    expect(completeWrapper.find("[data-testid=status-value]").text()).toBe("complete");
+  });
+
+  it("passes stable metadata payload to before/after slots", () => {
+    const messages: Message[] = [
+      {
+        id: "meta-user",
+        role: "user",
+        content: "hello",
+      } as Message,
+      {
+        id: "meta-assistant",
+        role: "assistant",
+        content: "hi",
+      } as AssistantMessage,
+    ];
+
+    const beforePayloads: Array<Record<string, unknown>> = [];
+    const afterPayloads: Array<Record<string, unknown>> = [];
+
+    mountMessageView(messages, {
+      "message-before": (payload: Record<string, unknown>) => {
+        beforePayloads.push(payload);
+        return h("div");
+      },
+      "message-after": (payload: Record<string, unknown>) => {
+        afterPayloads.push(payload);
+        return h("div");
+      },
+    });
+
+    expect(beforePayloads.length).toBeGreaterThanOrEqual(2);
+    expect(afterPayloads.length).toBeGreaterThanOrEqual(2);
+
+    const sampleBefore = beforePayloads[0]!;
+    const sampleAfter = afterPayloads[0]!;
+
+    expect(sampleBefore.position).toBe("before");
+    expect(sampleAfter.position).toBe("after");
+    expect(sampleBefore.agentId).toBe("default");
+    expect(sampleAfter.agentId).toBe("default");
+    expect(typeof sampleBefore.runId).toBe("string");
+    expect(typeof sampleAfter.runId).toBe("string");
+    expect(typeof sampleBefore.messageIndex).toBe("number");
+    expect(typeof sampleAfter.messageIndexInRun).toBe("number");
+    expect(typeof sampleBefore.numberOfMessagesInRun).toBe("number");
+    expect(typeof sampleAfter.stateSnapshot).toBe("undefined");
   });
 });

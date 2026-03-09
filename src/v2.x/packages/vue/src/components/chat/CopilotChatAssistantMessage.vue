@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineComponent, h, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, defineComponent, getCurrentInstance, h, onBeforeUnmount, onMounted, ref } from "vue";
 import type { AssistantMessage, Message } from "@ag-ui/core";
 import { StreamMarkdown } from "streamdown-vue";
 import { useCopilotChatConfiguration } from "../../providers/useCopilotChatConfiguration";
@@ -14,6 +14,16 @@ import {
   IconVolume2,
 } from "../icons";
 import CopilotChatToolCallsView from "./CopilotChatToolCallsView.vue";
+import type {
+  CopilotChatAssistantMessageCopyButtonSlotProps,
+  CopilotChatAssistantMessageMessageRendererSlotProps,
+  CopilotChatAssistantMessageReadAloudButtonSlotProps,
+  CopilotChatAssistantMessageRegenerateButtonSlotProps,
+  CopilotChatAssistantMessageThumbsDownButtonSlotProps,
+  CopilotChatAssistantMessageThumbsUpButtonSlotProps,
+  CopilotChatAssistantMessageToolCallsViewSlotProps,
+  CopilotChatAssistantMessageToolbarSlotProps,
+} from "./types";
 import "katex/dist/katex.min.css";
 
 const props = withDefaults(
@@ -22,21 +32,26 @@ const props = withDefaults(
     messages?: Message[];
     isRunning?: boolean;
     toolbarVisible?: boolean;
-    onThumbsUp?: (message: AssistantMessage) => void;
-    onThumbsDown?: (message: AssistantMessage) => void;
-    onReadAloud?: (message: AssistantMessage) => void;
-    onRegenerate?: (message: AssistantMessage) => void;
   }>(),
   {
     messages: () => [],
     isRunning: false,
     toolbarVisible: true,
-    onThumbsUp: undefined,
-    onThumbsDown: undefined,
-    onReadAloud: undefined,
-    onRegenerate: undefined,
   },
 );
+
+defineSlots<{
+  "message-renderer"?: (props: CopilotChatAssistantMessageMessageRendererSlotProps) => unknown;
+  toolbar?: (props: CopilotChatAssistantMessageToolbarSlotProps) => unknown;
+  "copy-button"?: (props: CopilotChatAssistantMessageCopyButtonSlotProps) => unknown;
+  "thumbs-up-button"?: (props: CopilotChatAssistantMessageThumbsUpButtonSlotProps) => unknown;
+  "thumbs-down-button"?: (props: CopilotChatAssistantMessageThumbsDownButtonSlotProps) => unknown;
+  "read-aloud-button"?: (props: CopilotChatAssistantMessageReadAloudButtonSlotProps) => unknown;
+  "regenerate-button"?: (props: CopilotChatAssistantMessageRegenerateButtonSlotProps) => unknown;
+  "tool-calls-view"?: (props: CopilotChatAssistantMessageToolCallsViewSlotProps) => unknown;
+  "toolbar-items"?: () => unknown;
+  [key: string]: ((props: any) => unknown) | undefined;
+}>();
 
 const emit = defineEmits<{
   "thumbs-up": [message: AssistantMessage];
@@ -47,8 +62,10 @@ const emit = defineEmits<{
 
 const config = useCopilotChatConfiguration();
 const labels = computed(() => config.value?.labels ?? CopilotChatDefaultLabels);
+const instance = getCurrentInstance();
 const copied = ref(false);
 let copiedResetTimeout: ReturnType<typeof setTimeout> | null = null;
+const vnodeProps = computed(() => (instance?.vnode.props ?? {}) as Record<string, unknown>);
 
 const toolbarButtonClass = [
   "inline-flex h-8 w-8 items-center justify-center rounded-md p-0",
@@ -543,10 +560,18 @@ function normalizeContent(content: unknown): string {
 
 const normalizedContent = computed(() => normalizeContent(props.message.content));
 const hasContent = computed(() => normalizedContent.value.trim().length > 0);
-const hasThumbsUp = computed(() => typeof props.onThumbsUp === "function");
-const hasThumbsDown = computed(() => typeof props.onThumbsDown === "function");
-const hasReadAloud = computed(() => typeof props.onReadAloud === "function");
-const hasRegenerate = computed(() => typeof props.onRegenerate === "function");
+function hasListener(listenerName: string) {
+  const listener = vnodeProps.value[listenerName];
+  if (Array.isArray(listener)) {
+    return listener.length > 0;
+  }
+  return !!listener;
+}
+
+const hasThumbsUp = computed(() => hasListener("onThumbsUp"));
+const hasThumbsDown = computed(() => hasListener("onThumbsDown"));
+const hasReadAloud = computed(() => hasListener("onReadAloud"));
+const hasRegenerate = computed(() => hasListener("onRegenerate"));
 const isLatestAssistantMessage = computed(
   () => props.messages[props.messages.length - 1]?.id === props.message.id,
 );
@@ -582,22 +607,18 @@ async function handleCopyMessage() {
 }
 
 function handleThumbsUp() {
-  props.onThumbsUp?.(props.message);
   emit("thumbs-up", props.message);
 }
 
 function handleThumbsDown() {
-  props.onThumbsDown?.(props.message);
   emit("thumbs-down", props.message);
 }
 
 function handleReadAloud() {
-  props.onReadAloud?.(props.message);
   emit("read-aloud", props.message);
 }
 
 function handleRegenerate() {
-  props.onRegenerate?.(props.message);
   emit("regenerate", props.message);
 }
 
@@ -614,84 +635,130 @@ onBeforeUnmount(() => {
     :data-message-id="message.id"
     v-bind="$attrs"
   >
-    <StreamMarkdown
-      v-if="hasContent"
-      class="copilot-chat-assistant-markdown"
+    <slot
+      name="message-renderer"
+      :message="message"
       :content="normalizedContent"
-      :components="markdownComponents"
-      :code-block-actions="[CodeBlockDownloadAction, CodeBlockCopyAction]"
-      :code-block-show-line-numbers="false"
-      :code-block-hide-copy="true"
-      :code-block-hide-download="true"
-      :allowed-link-prefixes="['https://', 'http://', '#', '/', './', '../']"
-      :shiki-theme="{ light: 'github-light', dark: 'github-dark' }"
-    />
+    >
+      <StreamMarkdown
+        v-if="hasContent"
+        class="copilot-chat-assistant-markdown"
+        :content="normalizedContent"
+        :components="markdownComponents"
+        :code-block-actions="[CodeBlockDownloadAction, CodeBlockCopyAction]"
+        :code-block-show-line-numbers="false"
+        :code-block-hide-copy="true"
+        :code-block-hide-download="true"
+        :allowed-link-prefixes="['https://', 'http://', '#', '/', './', '../']"
+        :shiki-theme="{ light: 'github-light', dark: 'github-dark' }"
+      />
+    </slot>
 
-    <CopilotChatToolCallsView :message="message" :messages="messages">
-      <template v-for="(_, slotName) in $slots" :key="slotName" #[slotName]="slotProps">
-        <slot :name="slotName" v-bind="slotProps" />
-      </template>
-    </CopilotChatToolCallsView>
+    <slot name="tool-calls-view" :message="message" :messages="messages">
+      <CopilotChatToolCallsView :message="message" :messages="messages">
+        <template v-for="(_, slotName) in $slots" :key="slotName" #[slotName]="slotProps">
+          <slot :name="slotName" v-bind="slotProps" />
+        </template>
+      </CopilotChatToolCallsView>
+    </slot>
 
-    <div v-if="shouldShowToolbar" class="w-full bg-transparent flex items-center -ml-[5px] -mt-[0px]">
-      <div class="flex items-center gap-1">
-        <button
-          type="button"
-          :class="toolbarButtonClass"
-          :aria-label="labels.assistantMessageToolbarCopyMessageLabel"
-          :title="labels.assistantMessageToolbarCopyMessageLabel"
-          @click="handleCopyMessage"
-        >
-          <IconCheck v-if="copied" class="size-[18px]" />
-          <IconCopy v-else class="size-[18px]" />
-        </button>
+    <slot
+      v-if="shouldShowToolbar"
+      name="toolbar"
+      :message="message"
+      :should-show-toolbar="shouldShowToolbar"
+    >
+      <div class="w-full bg-transparent flex items-center -ml-[5px] -mt-[0px]">
+        <div class="flex items-center gap-1">
+          <slot
+            name="copy-button"
+            :on-copy="handleCopyMessage"
+            :copied="copied"
+            :label="labels.assistantMessageToolbarCopyMessageLabel"
+          >
+            <button
+              type="button"
+              :class="toolbarButtonClass"
+              :aria-label="labels.assistantMessageToolbarCopyMessageLabel"
+              :title="labels.assistantMessageToolbarCopyMessageLabel"
+              @click="handleCopyMessage"
+            >
+              <IconCheck v-if="copied" class="size-[18px]" />
+              <IconCopy v-else class="size-[18px]" />
+            </button>
+          </slot>
 
-        <button
-          v-if="hasThumbsUp"
-          type="button"
-          :class="toolbarButtonClass"
-          :aria-label="labels.assistantMessageToolbarThumbsUpLabel"
-          :title="labels.assistantMessageToolbarThumbsUpLabel"
-          @click="handleThumbsUp"
-        >
-          <IconThumbsUp class="size-[18px]" />
-        </button>
+          <slot
+            v-if="hasThumbsUp"
+            name="thumbs-up-button"
+            :on-thumbs-up="handleThumbsUp"
+            :label="labels.assistantMessageToolbarThumbsUpLabel"
+          >
+            <button
+              type="button"
+              :class="toolbarButtonClass"
+              :aria-label="labels.assistantMessageToolbarThumbsUpLabel"
+              :title="labels.assistantMessageToolbarThumbsUpLabel"
+              @click="handleThumbsUp"
+            >
+              <IconThumbsUp class="size-[18px]" />
+            </button>
+          </slot>
 
-        <button
-          v-if="hasThumbsDown"
-          type="button"
-          :class="toolbarButtonClass"
-          :aria-label="labels.assistantMessageToolbarThumbsDownLabel"
-          :title="labels.assistantMessageToolbarThumbsDownLabel"
-          @click="handleThumbsDown"
-        >
-          <IconThumbsDown class="size-[18px]" />
-        </button>
+          <slot
+            v-if="hasThumbsDown"
+            name="thumbs-down-button"
+            :on-thumbs-down="handleThumbsDown"
+            :label="labels.assistantMessageToolbarThumbsDownLabel"
+          >
+            <button
+              type="button"
+              :class="toolbarButtonClass"
+              :aria-label="labels.assistantMessageToolbarThumbsDownLabel"
+              :title="labels.assistantMessageToolbarThumbsDownLabel"
+              @click="handleThumbsDown"
+            >
+              <IconThumbsDown class="size-[18px]" />
+            </button>
+          </slot>
 
-        <button
-          v-if="hasReadAloud"
-          type="button"
-          :class="toolbarButtonClass"
-          :aria-label="labels.assistantMessageToolbarReadAloudLabel"
-          :title="labels.assistantMessageToolbarReadAloudLabel"
-          @click="handleReadAloud"
-        >
-          <IconVolume2 class="size-[20px]" />
-        </button>
+          <slot
+            v-if="hasReadAloud"
+            name="read-aloud-button"
+            :on-read-aloud="handleReadAloud"
+            :label="labels.assistantMessageToolbarReadAloudLabel"
+          >
+            <button
+              type="button"
+              :class="toolbarButtonClass"
+              :aria-label="labels.assistantMessageToolbarReadAloudLabel"
+              :title="labels.assistantMessageToolbarReadAloudLabel"
+              @click="handleReadAloud"
+            >
+              <IconVolume2 class="size-[20px]" />
+            </button>
+          </slot>
 
-        <button
-          v-if="hasRegenerate"
-          type="button"
-          :class="toolbarButtonClass"
-          :aria-label="labels.assistantMessageToolbarRegenerateLabel"
-          :title="labels.assistantMessageToolbarRegenerateLabel"
-          @click="handleRegenerate"
-        >
-          <IconRefreshCw class="size-[18px]" />
-        </button>
+          <slot
+            v-if="hasRegenerate"
+            name="regenerate-button"
+            :on-regenerate="handleRegenerate"
+            :label="labels.assistantMessageToolbarRegenerateLabel"
+          >
+            <button
+              type="button"
+              :class="toolbarButtonClass"
+              :aria-label="labels.assistantMessageToolbarRegenerateLabel"
+              :title="labels.assistantMessageToolbarRegenerateLabel"
+              @click="handleRegenerate"
+            >
+              <IconRefreshCw class="size-[18px]" />
+            </button>
+          </slot>
 
-        <slot name="toolbar-items" />
+          <slot name="toolbar-items" />
+        </div>
       </div>
-    </div>
+    </slot>
   </div>
 </template>

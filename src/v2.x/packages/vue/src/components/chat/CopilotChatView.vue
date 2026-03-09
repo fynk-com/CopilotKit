@@ -22,16 +22,8 @@ const props = withDefaults(
     suggestionLoadingIndexes?: ReadonlyArray<number>;
     welcomeScreen?: boolean;
     inputValue?: string;
-    onSubmitMessage?: (value: string) => void;
-    onStop?: () => void;
     inputMode?: CopilotChatInputMode;
     inputToolsMenu?: (ToolsMenuItem | "-")[];
-    onInputChange?: (value: string) => void;
-    onSelectSuggestion?: (suggestion: Suggestion, index: number) => void;
-    onAddFile?: () => void;
-    onStartTranscribe?: () => void;
-    onCancelTranscribe?: () => void;
-    onFinishTranscribe?: () => void;
     onFinishTranscribeWithAudio?: (audioBlob: Blob) => void | Promise<void>;
   }>(),
   {
@@ -42,16 +34,8 @@ const props = withDefaults(
     suggestionLoadingIndexes: () => [],
     welcomeScreen: true,
     inputValue: undefined,
-    onSubmitMessage: undefined,
-    onStop: undefined,
     inputMode: "input",
     inputToolsMenu: () => [],
-    onInputChange: undefined,
-    onSelectSuggestion: undefined,
-    onAddFile: undefined,
-    onStartTranscribe: undefined,
-    onCancelTranscribe: undefined,
-    onFinishTranscribe: undefined,
     onFinishTranscribeWithAudio: undefined,
   },
 );
@@ -105,7 +89,6 @@ const emit = defineEmits<{
   "start-transcribe": [];
   "cancel-transcribe": [];
   "finish-transcribe": [];
-  "finish-transcribe-with-audio": [audioBlob: Blob];
 }>();
 
 const config = useCopilotChatConfiguration();
@@ -132,22 +115,12 @@ const vnodeProps = computed(
 const shouldShowWelcomeScreen = computed(
   () => props.messages.length === 0 && props.welcomeScreen !== false,
 );
-const hasAddFileAction = computed(
-  () => typeof props.onAddFile === "function" || hasListener("onAddFile"),
-);
-const hasStartTranscribeAction = computed(
-  () => typeof props.onStartTranscribe === "function" || hasListener("onStartTranscribe"),
-);
-const hasCancelTranscribeAction = computed(
-  () => typeof props.onCancelTranscribe === "function" || hasListener("onCancelTranscribe"),
-);
-const hasFinishTranscribeAction = computed(
-  () => typeof props.onFinishTranscribe === "function" || hasListener("onFinishTranscribe"),
-);
+const hasAddFileAction = computed(() => hasListener("onAddFile"));
+const hasStartTranscribeAction = computed(() => hasListener("onStartTranscribe"));
+const hasCancelTranscribeAction = computed(() => hasListener("onCancelTranscribe"));
+const hasFinishTranscribeAction = computed(() => hasListener("onFinishTranscribe"));
 const hasFinishTranscribeWithAudioAction = computed(
-  () =>
-    typeof props.onFinishTranscribeWithAudio === "function" ||
-    hasListener("onFinishTranscribeWithAudio"),
+  () => typeof props.onFinishTranscribeWithAudio === "function",
 );
 const messagePaddingBottom = computed(
   () => `${inputContainerHeight.value + FEATHER_HEIGHT + (hasSuggestions.value ? 4 : 32)}px`,
@@ -232,48 +205,39 @@ function handleInputValueChange(value: string) {
   if (!isControlledInput.value) {
     localInputValue.value = value;
   }
-  props.onInputChange?.(value);
   emit("input-change", value);
 }
 
 function handleSubmitMessage(value: string) {
-  props.onSubmitMessage?.(value);
   emit("submit-message", value);
 }
 
 function handleStop() {
-  props.onStop?.();
   emit("stop");
 }
 
 function handleSelectSuggestion(suggestion: Suggestion, index: number) {
-  props.onSelectSuggestion?.(suggestion, index);
   emit("select-suggestion", suggestion, index);
 }
 
 function handleAddFile() {
-  props.onAddFile?.();
   emit("add-file");
 }
 
 function handleStartTranscribe() {
-  props.onStartTranscribe?.();
   emit("start-transcribe");
 }
 
 function handleCancelTranscribe() {
-  props.onCancelTranscribe?.();
   emit("cancel-transcribe");
 }
 
 function handleFinishTranscribe() {
-  props.onFinishTranscribe?.();
   emit("finish-transcribe");
 }
 
 async function handleFinishTranscribeWithAudio(audioBlob: Blob) {
   await props.onFinishTranscribeWithAudio?.(audioBlob);
-  emit("finish-transcribe-with-audio", audioBlob);
 }
 
 const inputEventProps = computed(() => {
@@ -422,7 +386,7 @@ onBeforeUnmount(() => {
               <CopilotChatSuggestionView
                 :suggestions="suggestions"
                 :loading-indexes="suggestionLoadingIndexes"
-                :on-select-suggestion="handleSelectSuggestion"
+                @select-suggestion="handleSelectSuggestion"
               />
             </slot>
           </div>
@@ -463,7 +427,7 @@ onBeforeUnmount(() => {
                     class="mb-3 lg:ml-4 lg:mr-4 ml-0 mr-0"
                     :suggestions="suggestions"
                     :loading-indexes="suggestionLoadingIndexes"
-                    :on-select-suggestion="handleSelectSuggestion"
+                    @select-suggestion="handleSelectSuggestion"
                   />
                 </slot>
               </div>
