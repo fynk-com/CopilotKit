@@ -11,7 +11,7 @@ import type { Hono } from "hono";
 
 const NO_BODY_METHODS = new Set(["GET", "HEAD"]);
 
-export function defineHonoEventHandler(app: Hono<any, any, any>) {
+export function defineHonoEventHandler(app: Hono) {
   return defineEventHandler(async (event) => {
     const method = event.method?.toUpperCase() ?? "GET";
     const headers = new Headers();
