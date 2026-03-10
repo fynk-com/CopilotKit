@@ -14,7 +14,6 @@
     "@ag-ui/mcp-apps-middleware": "0.0.2",
     "@copilotkitnext/agent": "workspace:*",
     "@copilotkitnext/core": "workspace:*",
-    "@copilotkitnext/react": "workspace:*",
     "@copilotkitnext/runtime": "workspace:*",
     "@copilotkitnext/vue": "workspace:*",
     "@copilotkit/voice": "workspace:*",
@@ -22,11 +21,14 @@
     "hono": "^4.11.4",
     "nuxt": "3.17.5",
     "openai": "^5.9.0",
-    "rxjs": "7.8.1"
+    "rxjs": "7.8.1",
+    "zod": "^3.25.75"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^22",
     "eslint": "^9.39.1",
+    "tailwindcss": "^4",
     "typescript": "5.8.2"
   }
 }

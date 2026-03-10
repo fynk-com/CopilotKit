@@ -1,4 +1,12 @@
-import { defineEventHandler, getRequestHeaders, getRequestURL, readRawBody, setResponseStatus } from "h3";
+import { Readable } from "node:stream";
+import {
+  defineEventHandler,
+  getRequestHeaders,
+  getRequestURL,
+  readRawBody,
+  sendStream,
+  setResponseStatus,
+} from "h3";
 import type { Hono } from "hono";
 
 const NO_BODY_METHODS = new Set(["GET", "HEAD"]);
@@ -41,6 +49,10 @@ export function defineHonoEventHandler(app: Hono<any, any, any>) {
       event.node.res.setHeader(key, value);
     });
 
-    return Buffer.from(await response.arrayBuffer());
+    if (!response.body) {
+      return await response.text();
+    }
+
+    return sendStream(event, Readable.fromWeb(response.body as globalThis.ReadableStream<Uint8Array>));
   });
 }

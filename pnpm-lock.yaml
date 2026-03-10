@@ -1969,9 +1969,6 @@ importers:
       '@copilotkitnext/core':
         specifier: workspace:*
         version: link:../../../packages/core
-      '@copilotkitnext/react':
-        specifier: workspace:*
-        version: link:../../../packages/react
       '@copilotkitnext/runtime':
         specifier: workspace:*
         version: link:../../../packages/runtime
@@ -1993,13 +1990,22 @@ importers:
       rxjs:
         specifier: 7.8.1
         version: 7.8.1
+      zod:
+        specifier: ^3.25.75
+        version: 3.25.76
     devDependencies:
+      '@tailwindcss/postcss':
+        specifier: ^4
+        version: 4.1.18
       '@types/node':
         specifier: ^22
         version: 22.19.3
       eslint:
         specifier: ^9.39.1
         version: 9.39.2(jiti@2.6.1)
+      tailwindcss:
+        specifier: ^4
+        version: 4.1.18
       typescript:
         specifier: 5.8.2
         version: 5.8.2
@@ -38431,7 +38437,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.3
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.13.2)
+      retry-axios: 2.6.0(axios@1.13.2(debug@4.4.3))
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -44337,7 +44343,7 @@ snapshots:
       retext-stringify: 4.0.0
       unified: 11.0.5
 
-  retry-axios@2.6.0(axios@1.13.2):
+  retry-axios@2.6.0(axios@1.13.2(debug@4.4.3)):
     dependencies:
       axios: 1.13.2(debug@4.4.3)
 

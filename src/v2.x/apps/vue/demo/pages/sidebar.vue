@@ -1,36 +1,63 @@
 <script setup lang="ts">
-import { CopilotKitProvider } from "@copilotkitnext/vue";
+import { defineComponent, h } from "vue";
+import { z } from "zod";
+import { CopilotKitProvider, CopilotSidebar, useConfigureSuggestions, useFrontendTool } from "@copilotkitnext/vue";
+
+const projectCards = Array.from({ length: 4 }, (_unused, index) => index + 1);
+
+const SidebarChat = defineComponent({
+  name: "SidebarChat",
+  setup() {
+    useConfigureSuggestions({
+      instructions: "Suggest follow-up tasks based on the current page content",
+      available: "always",
+    });
+
+    useFrontendTool({
+      name: "toastNotification",
+      parameters: z.object({
+        message: z.string(),
+      }),
+      handler: async ({ message }) => {
+        if (typeof window !== "undefined") {
+          window.alert(`Notification: ${message}`);
+        }
+        return `Displayed toast: ${message}`;
+      },
+    });
+
+    return () => h(CopilotSidebar, { defaultOpen: true, width: "50%" });
+  },
+});
 </script>
 
 <template>
   <CopilotKitProvider runtime-url="/api/copilotkit" show-dev-console="auto">
-    <div style="min-height: 100vh; background: linear-gradient(135deg, #f1f5f9 0%, #ffffff 50%, #e2e8f0 100%)">
-      <main style="margin: 0 auto; width: 100%; max-width: 1120px; display: flex; flex-direction: column; gap: 32px; padding: 48px 24px">
-        <section style="display: flex; flex-direction: column; gap: 12px">
-          <h1 style="margin: 0; font-size: 1.875rem; line-height: 1.2; color: #0f172a">Copilot Sidebar Demo</h1>
-          <p style="margin: 0; max-width: 820px; color: #475569">
-            This route mirrors the React sidebar page structure and content. The Vue `CopilotSidebar` primitive is not
-            ported yet, so this route remains scaffold-only for now.
+    <div class="relative min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-200">
+      <main class="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-12">
+        <section class="space-y-4">
+          <h1 class="text-3xl font-semibold tracking-tight text-slate-900">Copilot Sidebar Demo</h1>
+          <p class="max-w-2xl text-slate-600">
+            This page shows the chat embedded as a right-aligned sidebar. Toggle the chat to see the main content
+            reflow. The assistant can suggest actions and invoke custom tools just like the full-screen chat.
           </p>
         </section>
 
-        <section style="display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))">
+        <section class="grid gap-6 md:grid-cols-2">
           <article
-            v-for="index in 4"
+            v-for="index in projectCards"
             :key="index"
-            style="border: 1px solid #e2e8f0; border-radius: 1rem; background: #ffffff; padding: 24px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08)"
+            class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md"
           >
-            <h2 style="margin: 0; font-size: 1.125rem; color: #0f172a">Project Card {{ index }}</h2>
-            <p style="margin: 10px 0 0; font-size: 0.925rem; color: #64748b">
-              Placeholder content to keep page-level parity while waiting for `CopilotSidebar` in the Vue package.
+            <h2 class="text-lg font-medium text-slate-900">Project Card {{ index }}</h2>
+            <p class="mt-2 text-sm text-slate-600">
+              Placeholder content to demonstrate how the sidebar pushes layout elements without overlapping the page.
             </p>
           </article>
         </section>
-
-        <section style="border: 1px dashed #94a3b8; border-radius: 12px; padding: 16px; background: #ffffff; color: #475569">
-          Pending parity primitive: `CopilotSidebar`.
-        </section>
       </main>
+
+      <SidebarChat />
     </div>
   </CopilotKitProvider>
 </template>

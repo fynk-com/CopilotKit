@@ -1,51 +1,59 @@
 <script setup lang="ts">
-import { CopilotKitProvider } from "@copilotkitnext/vue";
+import { CopilotKitProvider, CopilotSidebar } from "@copilotkitnext/vue";
+
+const demoCards = Array.from({ length: 4 }, (_unused, index) => index + 1);
+const mcpServerSetup = `git clone https://github.com/modelcontextprotocol/ext-apps
+cd ext-apps
+npm install
+npm start`;
 </script>
 
 <template>
   <CopilotKitProvider runtime-url="/api/copilotkit-mcp" show-dev-console="auto">
-    <div style="min-height: 100vh; background: linear-gradient(135deg, #f1f5f9 0%, #ffffff 50%, #e2e8f0 100%)">
-      <main style="margin: 0 auto; width: 100%; max-width: 1120px; display: flex; flex-direction: column; gap: 32px; padding: 48px 24px">
-        <section style="display: flex; flex-direction: column; gap: 12px">
-          <h1 style="margin: 0; font-size: 1.875rem; line-height: 1.2; color: #0f172a">MCP Apps Demo</h1>
-          <p style="margin: 0; max-width: 860px; color: #475569">
-            This route mirrors the React MCP apps page structure. The Vue `CopilotSidebar` primitive required by this
-            route is not ported yet, so this page remains scaffold-only.
+    <div class="relative min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-200">
+      <main class="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-12">
+        <section class="space-y-4">
+          <h1 class="text-3xl font-semibold tracking-tight text-slate-900">MCP Apps Demo</h1>
+          <p class="max-w-2xl text-slate-600">
+            This page demonstrates the MCP Apps Extension. The assistant has access to MCP tools that can render
+            interactive UI components directly in the chat.
           </p>
-          <div style="border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; padding: 16px; color: #475569">
-            <p style="margin: 0; font-weight: 600; color: #0f172a">Available MCP Tools (ext-apps)</p>
-            <ul style="margin: 12px 0 0; padding-left: 20px; display: grid; gap: 6px">
-              <li><code>get-time</code> - Current server time</li>
-              <li><code>get-budget-data</code> - Interactive budget allocation</li>
-              <li><code>get-cohort-data</code> - Cohort analysis heatmap</li>
-              <li><code>get-customer-data</code> - Customer segmentation analysis</li>
-              <li><code>get-scenario-data</code> - SaaS scenario modeling</li>
-              <li><code>play-sheet-music</code> - Music notation rendering</li>
-              <li><code>get-system-stats</code> - System monitoring dashboard</li>
-              <li><code>show_threejs_scene</code> - 3D visualization</li>
-              <li><code>play_video</code> - Video player</li>
-              <li><code>get-first-degree-links</code> - Wikipedia link explorer</li>
+          <div class="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">
+            <p class="font-medium text-slate-900">Available MCP Tools (ext-apps):</p>
+            <ul class="mt-2 list-inside list-disc space-y-1">
+              <li><code class="rounded bg-slate-100 px-1">get-time</code> - Current server time</li>
+              <li><code class="rounded bg-slate-100 px-1">get-budget-data</code> - Interactive budget allocation</li>
+              <li><code class="rounded bg-slate-100 px-1">get-cohort-data</code> - Cohort analysis heatmap</li>
+              <li><code class="rounded bg-slate-100 px-1">get-customer-data</code> - Customer segmentation analysis</li>
+              <li><code class="rounded bg-slate-100 px-1">get-scenario-data</code> - SaaS financial scenario modeling</li>
+              <li><code class="rounded bg-slate-100 px-1">play-sheet-music</code> - Music notation rendering</li>
+              <li><code class="rounded bg-slate-100 px-1">get-system-stats</code> - System monitoring dashboard</li>
+              <li><code class="rounded bg-slate-100 px-1">show_threejs_scene</code> - 3D visualization (Three.js)</li>
+              <li><code class="rounded bg-slate-100 px-1">play_video</code> - Video player</li>
+              <li><code class="rounded bg-slate-100 px-1">get-first-degree-links</code> - Wikipedia link explorer</li>
             </ul>
+            <div class="mt-3 space-y-1 text-xs text-slate-500">
+              <p class="font-medium">To run the MCP servers:</p>
+              <pre class="overflow-x-auto rounded bg-slate-100 p-2">{{ mcpServerSetup }}</pre>
+            </div>
           </div>
         </section>
 
-        <section style="display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))">
+        <section class="grid gap-6 md:grid-cols-2">
           <article
-            v-for="index in 4"
+            v-for="index in demoCards"
             :key="index"
-            style="border: 1px solid #e2e8f0; border-radius: 1rem; background: #ffffff; padding: 24px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08)"
+            class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md"
           >
-            <h2 style="margin: 0; font-size: 1.125rem; color: #0f172a">Demo Card {{ index }}</h2>
-            <p style="margin: 10px 0 0; font-size: 0.925rem; color: #64748b">
-              Route-level placeholder while waiting for interactive sidebar rendering in Vue.
+            <h2 class="text-lg font-medium text-slate-900">Demo Card {{ index }}</h2>
+            <p class="mt-2 text-sm text-slate-600">
+              Try asking the assistant to use MCP tools. The UI will render directly in the chat sidebar.
             </p>
           </article>
         </section>
-
-        <section style="border: 1px dashed #94a3b8; border-radius: 12px; padding: 16px; background: #ffffff; color: #475569">
-          Pending parity primitive: `CopilotSidebar` with MCP activity surface.
-        </section>
       </main>
+
+      <CopilotSidebar default-open width="50%" thread-id="mcp-apps-003" />
     </div>
   </CopilotKitProvider>
 </template>

@@ -1,4 +1,4 @@
-import { computed, shallowRef, triggerRef, watch } from "vue";
+import { computed, shallowRef, toValue, triggerRef, watch, type MaybeRefOrGetter } from "vue";
 import { DEFAULT_AGENT_ID } from "@copilotkitnext/shared";
 import type { AbstractAgent } from "@ag-ui/client";
 import {
@@ -20,12 +20,12 @@ const ALL_UPDATES: UseAgentUpdate[] = [
 ];
 
 export interface UseAgentProps {
-  agentId?: string;
+  agentId?: MaybeRefOrGetter<string | undefined>;
   updates?: UseAgentUpdate[];
 }
 
 export function useAgent(props: UseAgentProps = {}) {
-  const agentId = computed(() => props.agentId ?? DEFAULT_AGENT_ID);
+  const agentId = computed(() => toValue(props.agentId) ?? DEFAULT_AGENT_ID);
   const { copilotkit } = useCopilotKit();
   const updateFlags = computed(() => props.updates ?? ALL_UPDATES);
 

@@ -54,6 +54,7 @@ defineSlots<{
     suggestions: Suggestion[];
     loadingIndexes: ReadonlyArray<number>;
     modelValue: string;
+    isRunning: boolean;
     inputMode: CopilotChatInputMode;
     inputToolsMenu: (ToolsMenuItem | "-")[];
     onUpdateModelValue: (value: string) => void;
@@ -312,6 +313,7 @@ onBeforeUnmount(() => {
       :suggestions="suggestions"
       :loading-indexes="suggestionLoadingIndexes"
       :model-value="resolvedInputValue"
+      :is-running="isRunning"
       :input-mode="inputMode"
       :input-tools-menu="inputToolsMenu"
       :on-update-model-value="handleInputValueChange"

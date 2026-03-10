@@ -6,6 +6,7 @@ import type {
   UserMessage,
 } from "@ag-ui/core";
 import type { ToolCallStatus } from "@copilotkitnext/core";
+import type { CopilotChatLabels } from "../../providers/types";
 
 export type CopilotChatInputMode = "input" | "transcribe" | "processing";
 
@@ -19,6 +20,31 @@ export interface CopilotChatViewProps {
   inputValue?: string;
   inputMode?: CopilotChatInputMode;
   inputToolsMenu?: (ToolsMenuItem | "-")[];
+  onFinishTranscribeWithAudio?: (audioBlob: Blob) => void | Promise<void>;
+}
+
+export interface CopilotChatProps
+  extends Omit<
+    CopilotChatViewProps,
+    "messages" | "isRunning" | "suggestions" | "suggestionLoadingIndexes"
+  > {
+  agentId?: string;
+  threadId?: string;
+  labels?: Partial<CopilotChatLabels>;
+}
+
+export interface CopilotChatViewOverrideSlotProps extends CopilotChatViewProps {
+  onSubmitMessage: (value: string) => void | Promise<void>;
+  onStop?: () => void;
+  onInputChange: (value: string) => void;
+  onSelectSuggestion: (
+    suggestion: import("@copilotkitnext/core").Suggestion,
+    index: number,
+  ) => void | Promise<void>;
+  onAddFile?: () => void;
+  onStartTranscribe?: () => void;
+  onCancelTranscribe?: () => void;
+  onFinishTranscribe?: () => void;
   onFinishTranscribeWithAudio?: (audioBlob: Blob) => void | Promise<void>;
 }
 
@@ -50,6 +76,7 @@ export interface CopilotChatSuggestionViewSlotProps {
 
 export interface CopilotChatWelcomeScreenSlotProps extends CopilotChatSuggestionViewSlotProps {
   modelValue: string;
+  isRunning: boolean;
   inputMode: CopilotChatInputMode;
   inputToolsMenu: (ToolsMenuItem | "-")[];
   onUpdateModelValue: (value: string) => void;
@@ -252,6 +279,38 @@ export interface CopilotSidebarViewToggleButtonSlotProps {
 }
 
 export interface CopilotSidebarViewProps extends CopilotChatViewProps {
+  width?: number | string;
+  defaultOpen?: boolean;
+}
+
+export type CopilotPopupViewHeaderSlotProps = CopilotSidebarViewHeaderSlotProps;
+
+export type CopilotPopupViewToggleButtonSlotProps = CopilotSidebarViewToggleButtonSlotProps;
+
+export type CopilotPopupWelcomeScreenInputSlotProps = CopilotSidebarWelcomeScreenInputSlotProps;
+
+export type CopilotPopupWelcomeScreenSuggestionViewSlotProps =
+  CopilotSidebarWelcomeScreenSuggestionViewSlotProps;
+
+export type CopilotPopupWelcomeScreenLayoutSlotProps = CopilotSidebarWelcomeScreenLayoutSlotProps;
+
+export type CopilotPopupWelcomeScreenProps = CopilotPopupWelcomeScreenLayoutSlotProps;
+
+export interface CopilotPopupViewProps extends CopilotChatViewProps {
+  width?: number | string;
+  height?: number | string;
+  clickOutsideToClose?: boolean;
+  defaultOpen?: boolean;
+}
+
+export interface CopilotPopupProps extends CopilotChatProps {
+  width?: number | string;
+  height?: number | string;
+  clickOutsideToClose?: boolean;
+  defaultOpen?: boolean;
+}
+
+export interface CopilotSidebarProps extends CopilotChatProps {
   width?: number | string;
   defaultOpen?: boolean;
 }

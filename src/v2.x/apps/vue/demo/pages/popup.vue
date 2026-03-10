@@ -1,39 +1,79 @@
 <script setup lang="ts">
-import { CopilotKitProvider } from "@copilotkitnext/vue";
+import { defineComponent, h } from "vue";
+import { z } from "zod";
+import { CopilotKitProvider, CopilotPopup, useConfigureSuggestions, useFrontendTool } from "@copilotkitnext/vue";
+
+const popupCards = Array.from({ length: 6 }, (_unused, index) => index + 1);
+
+const PopupChat = defineComponent({
+  name: "PopupChat",
+  setup() {
+    useConfigureSuggestions({
+      instructions: "Suggest short summaries or next actions based on the dashboard content",
+      available: "always",
+      maxSuggestions: 2,
+    });
+
+    useFrontendTool({
+      name: "notify",
+      parameters: z.object({
+        message: z.string(),
+      }),
+      handler: async ({ message }) => {
+        if (typeof window !== "undefined") {
+          window.alert(`Notification: ${message}`);
+        }
+        return `Displayed notification: ${message}`;
+      },
+    });
+
+    return () => h(CopilotPopup, { defaultOpen: true, clickOutsideToClose: true });
+  },
+});
 </script>
 
 <template>
   <CopilotKitProvider runtime-url="/api/copilotkit" show-dev-console="auto">
-    <div style="min-height: 100vh; background: linear-gradient(135deg, #f1f5f9 0%, #ffffff 50%, #e2e8f0 100%)">
-      <main style="margin: 0 auto; width: 100%; max-width: 1120px; display: flex; flex-direction: column; gap: 32px; padding: 48px 24px 160px">
-        <section style="display: flex; flex-direction: column; gap: 12px">
-          <span style="display: inline-flex; width: fit-content; align-items: center; border-radius: 999px; background: rgba(15, 23, 42, 0.08); padding: 4px 12px; font-size: 0.75rem; font-weight: 600; color: #334155">
+    <div class="relative min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-200">
+      <main class="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 py-12 pb-40">
+        <section class="space-y-4">
+          <span class="inline-flex items-center rounded-full bg-slate-900/10 px-3 py-1 text-xs font-medium text-slate-700">
             Overlay Chat Demo
           </span>
-          <h1 style="margin: 0; font-size: 1.875rem; line-height: 1.2; color: #0f172a">Copilot Popup Demo</h1>
-          <p style="margin: 0; max-width: 820px; color: #475569">
-            This route mirrors the React popup page scaffolding. The Vue `CopilotPopup` primitive is not ported yet,
-            so the overlay interaction is intentionally deferred.
+          <h1 class="text-3xl font-semibold tracking-tight text-slate-900">Copilot Popup Demo</h1>
+          <p class="max-w-2xl text-slate-600">
+            This page mounts the chat as a floating popup anchored to the bottom-right corner. The popup animates in
+            and out, and leaves the rest of the interface interactive. Try clicking outside the popup or using the
+            toggle button to open and close the assistant.
           </p>
         </section>
 
-        <section style="display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))">
+        <section class="grid gap-6 md:grid-cols-2">
           <article
-            v-for="index in 6"
+            v-for="index in popupCards"
             :key="index"
-            style="border: 1px solid #e2e8f0; border-radius: 1rem; background: #ffffff; padding: 24px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08)"
+            class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md"
           >
-            <h2 style="margin: 0; font-size: 1.125rem; color: #0f172a">In-Flow Task {{ index }}</h2>
-            <p style="margin: 10px 0 0; font-size: 0.925rem; color: #64748b">
-              Placeholder task card matching the React popup route content structure.
+            <h2 class="text-lg font-medium text-slate-900">In-Flow Task {{ index }}</h2>
+            <p class="mt-2 text-sm text-slate-600">
+              Use the popup assistant to draft updates, summarize status, or trigger custom tools without losing
+              context.
             </p>
           </article>
         </section>
 
-        <section style="border: 1px dashed #94a3b8; border-radius: 12px; padding: 16px; background: #ffffff; color: #475569">
-          Pending parity primitive: `CopilotPopup`.
+        <section class="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-6 shadow-inner">
+          <h3 class="text-base font-semibold text-slate-900">How the popup behaves</h3>
+          <ul class="mt-3 space-y-2 text-sm text-slate-600">
+            <li>• Appears with a bottom-right scale and translate animation.</li>
+            <li>• Leaves the page scrollable and interactive—no backdrop overlay.</li>
+            <li>• Supports closing when you click outside (enabled in this demo).</li>
+            <li>• Reuses all chat slots, tools, and suggestion hooks from the core chat.</li>
+          </ul>
         </section>
       </main>
+
+      <PopupChat />
     </div>
   </CopilotKitProvider>
 </template>
