@@ -5,6 +5,7 @@ import type { AbstractAgent } from "@ag-ui/client";
 import { FrontendTool } from "@copilotkitnext/core";
 import { CopilotKitCoreVue } from "../lib/vue-core";
 import { CopilotKitKey } from "./keys";
+import CopilotKitInspector from "../components/CopilotKitInspector.vue";
 import type { CopilotKitProviderProps } from "./CopilotKitProvider.types";
 import type {
   VueFrontendTool,
@@ -34,8 +35,6 @@ const props = withDefaults(
 );
 
 const shouldRenderInspector = ref(false);
-const inspectorTag = ref<string>("cpk-web-inspector");
-const isInspectorDefined = ref(false);
 
 const updateInspectorVisibility = () => {
   if (props.showDevConsole === true) {
@@ -55,32 +54,6 @@ const updateInspectorVisibility = () => {
 };
 
 watch(() => props.showDevConsole, updateInspectorVisibility, { immediate: true });
-
-watch(
-  shouldRenderInspector,
-  (enabled, _old, onCleanup) => {
-    if (!enabled || isInspectorDefined.value || typeof window === "undefined") {
-      return;
-    }
-
-    let mounted = true;
-    void import("@copilotkitnext/web-inspector")
-      .then((mod) => {
-        mod.defineWebInspector?.();
-        if (!mounted) return;
-        inspectorTag.value = mod.WEB_INSPECTOR_TAG;
-        isInspectorDefined.value = true;
-      })
-      .catch((error: unknown) => {
-        console.error("Failed to load CopilotKit inspector:", error);
-      });
-
-    onCleanup(() => {
-      mounted = false;
-    });
-  },
-  { immediate: true },
-);
 
 const initialFrontendTools = props.frontendTools;
 const initialHumanInTheLoop = props.humanInTheLoop;
@@ -275,9 +248,8 @@ provide(CopilotKitKey, { copilotkit, executingToolCallIds });
 
 <template>
   <slot />
-  <component
-    :is="inspectorTag"
-    v-if="shouldRenderInspector && isInspectorDefined"
-    :core.prop="copilotkit"
+  <CopilotKitInspector
+    v-if="shouldRenderInspector"
+    :core="copilotkit"
   />
 </template>

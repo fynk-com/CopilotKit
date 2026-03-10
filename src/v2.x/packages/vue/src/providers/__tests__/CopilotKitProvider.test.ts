@@ -6,6 +6,7 @@ import type {
   FrontendToolHandlerContext,
 } from "@copilotkitnext/core";
 import { CopilotKitCoreRuntimeConnectionStatus } from "@copilotkitnext/core";
+import { defineWebInspector } from "@copilotkitnext/web-inspector";
 import { z } from "zod";
 import CopilotKitProvider from "../CopilotKitProvider.vue";
 import { useCopilotKit } from "../useCopilotKit";
@@ -30,6 +31,7 @@ describe("CopilotKitProvider", () => {
   beforeEach(() => {
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.mocked(defineWebInspector).mockClear();
   });
 
   afterEach(() => {
@@ -523,6 +525,27 @@ describe("CopilotKitProvider", () => {
       await nextTick();
 
       expect(wrapper.find("cpk-web-inspector").exists()).toBe(true);
+      expect(defineWebInspector).toHaveBeenCalledTimes(1);
+    });
+
+    it("renders inspector on localhost when showDevConsole is auto", async () => {
+      const wrapper = mount(CopilotKitProvider, {
+        props: {
+          runtimeUrl: "/api/copilotkit",
+          showDevConsole: "auto",
+        },
+        slots: {
+          default: () => h("div", "test"),
+        },
+      });
+
+      await nextTick();
+      await vi.dynamicImportSettled();
+      await nextTick();
+
+      const shouldRenderOnThisHost = new Set(["localhost", "127.0.0.1"]).has(window.location.hostname);
+
+      expect(wrapper.find("cpk-web-inspector").exists()).toBe(shouldRenderOnThisHost);
     });
 
     it("does not render inspector when showDevConsole is false", async () => {

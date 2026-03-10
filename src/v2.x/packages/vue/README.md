@@ -84,7 +84,7 @@ Supported tool-level slots:
 
 - **Providers**: `CopilotKitProvider`, `CopilotChatConfigurationProvider`
 - **Composables**: `useCopilotKit`, `useCopilotChatConfiguration`, `useAgent`, `useAgentContext`, `useFrontendTool`, `useHumanInTheLoop`, `useSuggestions`, `useConfigureSuggestions`
-- **Components**: `CopilotChat`, `CopilotChatAssistantMessage`, `CopilotChatUserMessage`, `CopilotChatMessageView`, `CopilotChatSuggestionPill`, `CopilotChatSuggestionView`, `CopilotChatInput`, `CopilotChatToggleButton`, `CopilotModalHeader`, `CopilotChatView`, `CopilotChatToolCallsView`, `CopilotSidebarView`, `CopilotPopupView`, `CopilotSidebar`, `CopilotPopup`, `MCPAppsActivityRenderer`
+- **Components**: `CopilotChat`, `CopilotKitInspector`, `CopilotChatAssistantMessage`, `CopilotChatUserMessage`, `CopilotChatMessageView`, `CopilotChatSuggestionPill`, `CopilotChatSuggestionView`, `CopilotChatInput`, `CopilotChatToggleButton`, `CopilotModalHeader`, `CopilotChatView`, `CopilotChatToolCallsView`, `CopilotSidebarView`, `CopilotPopupView`, `CopilotSidebar`, `CopilotPopup`, `MCPAppsActivityRenderer`
 - **Markdown Renderer**: `CopilotChatAssistantMessage` uses `streamdown-vue` (with KaTeX support)
 - **Core**: `CopilotKitCoreVue`
 
