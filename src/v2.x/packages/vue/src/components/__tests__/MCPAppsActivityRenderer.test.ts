@@ -275,4 +275,98 @@ describe("MCPAppsActivityRenderer", () => {
     expect(style).not.toContain("border-radius: 8px");
     expect(style).not.toContain("border: 1px solid rgb(224, 224, 224)");
   });
+
+  it("includes resourceDomains in the sandbox iframe CSP when provided", async () => {
+    const agent = createAgentMock({
+      runResult: {
+        result: {
+          contents: [
+            {
+              uri: "ui://server/csp",
+              text: "<div>csp</div>",
+              _meta: {
+                ui: {
+                  csp: {
+                    resourceDomains: [
+                      "https://widgets.example.com",
+                      "https://cdn.example.com",
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+      threadId: "csp-thread",
+    });
+
+    const wrapper = mount(MCPAppsActivityRenderer, {
+      props: {
+        activityType: MCPAppsActivityType,
+        content: {
+          resourceUri: "ui://server/csp",
+          serverHash: "hash-csp",
+          result: {},
+        },
+        message: {
+          id: "activity-csp",
+          role: "assistant",
+          content: "",
+          activityType: MCPAppsActivityType,
+        },
+        agent,
+      },
+    });
+
+    await flushAsync();
+    await flushAsync();
+
+    const iframe = wrapper.find("iframe").element as HTMLIFrameElement;
+    expect(iframe.srcdoc).toContain("script-src");
+    expect(iframe.srcdoc).toContain("frame-src");
+    expect(iframe.srcdoc).toContain("https://widgets.example.com");
+    expect(iframe.srcdoc).toContain("https://cdn.example.com");
+  });
+
+  it("keeps the sandbox iframe CSP unchanged when no resourceDomains are provided", async () => {
+    const agent = createAgentMock({
+      runResult: {
+        result: {
+          contents: [{ uri: "ui://server/default-csp", text: "<div>default</div>" }],
+        },
+      },
+      threadId: "default-csp-thread",
+    });
+
+    const wrapper = mount(MCPAppsActivityRenderer, {
+      props: {
+        activityType: MCPAppsActivityType,
+        content: {
+          resourceUri: "ui://server/default-csp",
+          serverHash: "hash-default-csp",
+          result: {},
+        },
+        message: {
+          id: "activity-default-csp",
+          role: "assistant",
+          content: "",
+          activityType: MCPAppsActivityType,
+        },
+        agent,
+      },
+    });
+
+    await flushAsync();
+    await flushAsync();
+
+    const iframe = wrapper.find("iframe").element as HTMLIFrameElement;
+    expect(iframe.srcdoc).toContain(
+      "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline' 'unsafe-eval' blob: data: http://localhost:* https://localhost:*;",
+    );
+    expect(iframe.srcdoc).toContain(
+      "frame-src * blob: data: http://localhost:* https://localhost:*;",
+    );
+    expect(iframe.srcdoc).not.toContain("widgets.example.com");
+  });
 });

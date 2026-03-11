@@ -333,6 +333,11 @@ export class RunHandler {
 
     if (!errorMessage || !isArgumentError) {
       const messageIndex = agent.messages.findIndex((m) => m.id === message.id);
+      if (messageIndex === -1) {
+        // The thread changed while the tool was executing, so the parent message
+        // is no longer present. Skip inserting the result into the wrong thread.
+        return false;
+      }
       const toolMessage = {
         id: randomUUID(),
         role: "tool" as const,
@@ -460,6 +465,11 @@ export class RunHandler {
 
     if (!errorMessage || !isArgumentError) {
       const messageIndex = agent.messages.findIndex((m) => m.id === message.id);
+      if (messageIndex === -1) {
+        // The thread changed while the tool was executing, so the parent message
+        // is no longer present. Skip inserting the result into the wrong thread.
+        return false;
+      }
       const toolMessage = {
         id: randomUUID(),
         role: "tool" as const,

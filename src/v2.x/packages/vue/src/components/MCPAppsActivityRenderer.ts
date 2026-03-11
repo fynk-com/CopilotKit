@@ -13,11 +13,19 @@ import type { VueActivityMessageRendererProps } from "../types";
 
 const PROTOCOL_VERSION = "2025-06-18";
 
-const SANDBOX_HTML = `<!doctype html>
+function buildSandboxHTML(extraCspDomains?: string[]): string {
+  const baseScriptSrc =
+    "'self' 'wasm-unsafe-eval' 'unsafe-inline' 'unsafe-eval' blob: data: http://localhost:* https://localhost:*";
+  const baseFrameSrc = "* blob: data: http://localhost:* https://localhost:*";
+  const extra = extraCspDomains?.length ? ` ${extraCspDomains.join(" ")}` : "";
+  const scriptSrc = `${baseScriptSrc}${extra}`;
+  const frameSrc = `${baseFrameSrc}${extra}`;
+
+  return `<!doctype html>
 <html>
 <head>
 <meta charset="utf-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src * data: blob: 'unsafe-inline'; media-src * blob: data:; font-src * blob: data:; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline' 'unsafe-eval' blob: data: http://localhost:* https://localhost:*; style-src * blob: data: 'unsafe-inline'; connect-src *; frame-src * blob: data: http://localhost:* https://localhost:*; base-uri 'self';" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src * data: blob: 'unsafe-inline'; media-src * blob: data:; font-src * blob: data:; script-src ${scriptSrc}; style-src * blob: data: 'unsafe-inline'; connect-src *; frame-src ${frameSrc}; base-uri 'self';" />
 <style>html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden}*{box-sizing:border-box}iframe{background-color:transparent;border:none;padding:0;overflow:hidden;width:100%;height:100%}</style>
 </head>
 <body>
@@ -44,6 +52,7 @@ window.parent.postMessage({jsonrpc:"2.0",method:"ui/notifications/sandbox-proxy-
 </script>
 </body>
 </html>`;
+}
 
 class MCPAppsRequestQueue {
   private queues = new Map<
@@ -414,7 +423,9 @@ export const MCPAppsActivityRenderer = defineComponent({
               return;
             }
 
-            iframe.srcdoc = SANDBOX_HTML;
+            const cspDomains =
+              fetchedResource.value?._meta?.ui?.csp?.resourceDomains;
+            iframe.srcdoc = buildSandboxHTML(cspDomains);
             iframeRef.value = iframe;
             container.appendChild(iframe);
 
