@@ -255,6 +255,51 @@ describe("useFrontendTool", () => {
     addToolSpy.mockRestore();
   });
 
+  it("registers a Vue component renderer when provided", async () => {
+    const handler = vi.fn(async () => "ok");
+    const ToolRenderer = defineComponent({
+      props: {
+        name: {
+          type: String,
+          required: true,
+        },
+        status: {
+          type: String,
+          required: true,
+        },
+      },
+      template: `<div data-testid="dynamic-tool-renderer">{{ name }}:{{ status }}</div>`,
+    });
+    const tool: VueFrontendTool<Record<string, unknown>> = {
+      name: "componentTool",
+      description: "Component renderer",
+      parameters: z.object({}),
+      handler,
+      followUp: false,
+      render: ToolRenderer,
+    };
+
+    const ToolUser = defineComponent({
+      setup() {
+        useFrontendTool(tool);
+        return () => null;
+      },
+    });
+
+    const agent = new StateCapturingAgent([{ newMessages: [] }], "test-agent");
+    const { getCore } = mountWithProvider(
+      () => h(ToolUser),
+      { agents__unsafe_dev_only: { "test-agent": agent as unknown as AbstractAgent } },
+    );
+
+    await nextTick();
+
+    const renderers = getCore().renderToolCalls;
+    expect(renderers).toHaveLength(1);
+    expect(renderers[0]?.name).toBe("componentTool");
+    expect(renderers[0]?.render).toBe(ToolRenderer);
+  });
+
   it("stops execution chain when followUp is false", async () => {
     const handler = vi.fn(async () => "done");
     const tool: VueFrontendTool<{ value: string }> = {

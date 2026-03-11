@@ -43,6 +43,9 @@ This file defines how agents should keep `@copilotkitnext/vue` aligned with upst
   - use Vue `WatchSource`-based dependencies to mirror React deps behavior.
 - Tool rendering:
   - preserve wildcard/specific/agent-scoped semantics from React.
+  - keep slots as the primary public customization model;
+  - when a programmatic renderer registration path exists, prefer Vue SFC/components over handwritten `h(...)` render functions where both are viable;
+  - keep raw render functions mainly for renderer-bridge glue or places where template/SFC conversion is genuinely awkward.
 - Chat render parity contract:
   - follow the architectural decision in `src/v2.x/packages/vue/README.md` section `Architectural Decision: Render APIs -> Slots`;
   - translate React render props/hooks into Vue named/scoped slots deterministically;
