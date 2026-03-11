@@ -178,5 +178,9 @@ Deterministic rules:
    Use slot payload callbacks such as `onCopy`, `onEdit`, `goPrev`, `goNext`, and `onSubmitMessage` for slotted control surfaces.
 7. Only keep public callback props for true command-style flows that must be awaited by the child:
    Current exception: `CopilotChatView.onFinishTranscribeWithAudio`.
+8. If a programmatic renderer registration path is used:
+   Prefer Vue SFC/components over handwritten `h(...)` render functions when either can express the same behavior.
+9. Keep slots as the primary public customization mechanism:
+   Component-based registered renderers are acceptable for programmatic registration, but they do not replace the slot-first model.
 
 This is an architectural constraint for future parity work: new React render-hook behavior should be mirrored by extending slot contracts, not by re-introducing provider render props in Vue.

@@ -130,6 +130,59 @@ describe("CopilotChatToolCallsView", () => {
     expect(wrapper.get("[data-testid='core-render-tool']").text()).toBe("search_docs:inProgress");
   });
 
+  it("renders a registered Vue component renderer", () => {
+    const message = baseAssistantMessage("search_docs");
+    const ToolRenderer = defineComponent({
+      props: {
+        name: {
+          type: String,
+          required: true,
+        },
+        status: {
+          type: String,
+          required: true,
+        },
+      },
+      template: `<div data-testid="component-render-tool">{{ name }}:{{ status }}</div>`,
+    });
+    const RegisterRenderer = defineComponent({
+      setup() {
+        const { copilotkit } = useCopilotKit();
+        copilotkit.value.setRenderToolCalls([
+          defineToolCallRenderer({
+            name: "search_docs",
+            args: undefined,
+            render: ToolRenderer,
+          }),
+        ]);
+        return () => null;
+      },
+    });
+
+    const wrapper = mount(CopilotKitProvider, {
+      props: { runtimeUrl: "/api/copilotkit" },
+      slots: {
+        default: () =>
+          h(
+            CopilotChatConfigurationProvider,
+            { threadId: "thread-1", agentId: "default" },
+            {
+              default: () =>
+                h("div", [
+                  h(RegisterRenderer),
+                  h(CopilotChatToolCallsView, {
+                    message,
+                    messages: [message],
+                  }),
+                ]),
+            },
+          ),
+      },
+    });
+
+    expect(wrapper.get("[data-testid='component-render-tool']").text()).toBe("search_docs:inProgress");
+  });
+
   it("prefers slots over registered core renderers", () => {
     const message = baseAssistantMessage("search_docs");
     const RegisterRenderer = defineComponent({

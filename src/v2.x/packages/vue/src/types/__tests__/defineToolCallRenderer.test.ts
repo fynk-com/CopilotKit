@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { h } from "vue";
+import { defineComponent, h } from "vue";
 import { z } from "zod";
 import { ToolCallStatus } from "@copilotkitnext/core";
 import { defineToolCallRenderer } from "../defineToolCallRenderer";
@@ -47,6 +47,30 @@ describe("defineToolCallRenderer", () => {
     expect(renderers).toHaveLength(2);
     expect(renderers[0]?.name).toBe("*");
     expect(renderers[1]?.name).toBe("get_weather");
+  });
+
+  it("accepts a Vue component as the renderer", () => {
+    const ToolRenderer = defineComponent({
+      props: {
+        name: {
+          type: String,
+          required: true,
+        },
+        status: {
+          type: String,
+          required: true,
+        },
+      },
+      template: `<div data-testid="component-renderer">{{ name }}:{{ status }}</div>`,
+    });
+
+    const componentRenderer = defineToolCallRenderer({
+      name: "get_weather",
+      args: z.object({ location: z.string() }),
+      render: ToolRenderer,
+    });
+
+    expect(componentRenderer.render).toBe(ToolRenderer);
   });
 
   it("infers typed args shape for specific tools", () => {
