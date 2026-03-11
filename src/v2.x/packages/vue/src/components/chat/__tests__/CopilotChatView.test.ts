@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { h } from "vue";
+import { defineComponent, h, nextTick, ref } from "vue";
 import { mount } from "@vue/test-utils";
 import type { AssistantMessage, Message, UserMessage } from "@ag-ui/core";
 import type { Suggestion } from "@copilotkitnext/core";
@@ -29,6 +29,15 @@ const suggestions: Suggestion[] = [
   { title: "Summarize", message: "Summarize this chat", isLoading: false },
   { title: "Next steps", message: "List next steps", isLoading: false },
 ];
+
+function createChatMessages(count: number): Message[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `message-${index + 1}`,
+    role: index % 2 === 0 ? "user" : "assistant",
+    content: `Message ${index + 1}`,
+    timestamp: new Date(),
+  }));
+}
 
 function mountChatView(
   props: Record<string, unknown> = {},
@@ -229,5 +238,77 @@ describe("CopilotChatView", () => {
     expect(wrapper.find("[data-testid='chat-view-custom-user-message']").text()).toBe("Hello");
 
     await wrapper.get("[data-testid='chat-view-custom-assistant-copy']").trigger("click");
+  });
+
+  it("preserves scroll position when new messages arrive and the user is scrolled up", async () => {
+    const messages = ref<Message[]>(createChatMessages(12));
+
+    const Host = defineComponent({
+      setup() {
+        return () =>
+          h(CopilotKitProvider, { runtimeUrl: "/api/copilotkit" }, {
+            default: () =>
+              h(
+                CopilotChatConfigurationProvider,
+                {
+                  threadId: "thread-1",
+                  agentId: "default",
+                },
+                {
+                  default: () =>
+                    h(CopilotChatView, {
+                      messages: messages.value,
+                    }),
+                },
+              ),
+          });
+      },
+    });
+
+    const wrapper = mount(Host);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const scrollElement = wrapper.get("[data-testid='copilot-chat-view-scroll']").element as HTMLElement;
+
+    let scrollTop = 0;
+    Object.defineProperty(scrollElement, "scrollHeight", {
+      configurable: true,
+      get: () => 1000,
+    });
+    Object.defineProperty(scrollElement, "clientHeight", {
+      configurable: true,
+      get: () => 300,
+    });
+    Object.defineProperty(scrollElement, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value;
+      },
+    });
+    scrollElement.scrollTo = ({ top }: ScrollToOptions) => {
+      scrollTop = top ?? 0;
+    };
+
+    scrollTop = 120;
+    scrollElement.dispatchEvent(new Event("scroll"));
+    await nextTick();
+
+    expect(wrapper.find("[data-testid='copilot-chat-view-scroll-to-bottom']").exists()).toBe(true);
+
+    messages.value = [
+      ...messages.value,
+      {
+        id: "message-13",
+        role: "assistant",
+        content: "Newest message",
+        timestamp: new Date(),
+      },
+    ];
+
+    await nextTick();
+    await nextTick();
+
+    expect(scrollTop).toBe(120);
+    expect(wrapper.find("[data-testid='copilot-chat-view-scroll-to-bottom']").exists()).toBe(true);
   });
 });

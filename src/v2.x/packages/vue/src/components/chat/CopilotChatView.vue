@@ -134,8 +134,9 @@ watch(
 watch(
   [() => props.messages, () => props.suggestions, () => props.isRunning],
   async () => {
+    const wasAtBottom = isAtBottom.value;
     await nextTick();
-    if (!props.autoScroll) {
+    if (!props.autoScroll || !wasAtBottom) {
       return;
     }
     scrollToBottom("auto");
