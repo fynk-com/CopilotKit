@@ -1,0 +1,26 @@
+{
+  "extends": "@copilotkitnext/typescript-config/base.json",
+  "compilerOptions": {
+    "declaration": false,
+    "declarationMap": false,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@copilotkitnext/vue": ["../../../../packages/v2/vue/src/index.ts"],
+      "@copilotkitnext/vue/*": ["../../../../packages/v2/vue/src/*"],
+      "@copilotkitnext/core": [
+        "../../../../packages/v2/core/dist/index.d.ts",
+        "../../../../packages/v2/core/src/index.ts"
+      ],
+      "@copilotkitnext/shared": [
+        "../../../../packages/v2/shared/dist/index.d.ts",
+        "../../../../packages/v2/shared/src/index.ts"
+      ],
+      "@ag-ui/core": ["../../../../node_modules/@ag-ui/core/dist/index.d.ts"],
+      "@/*": ["../../../../packages/v2/vue/src/*"]
+    },
+    "types": ["node"]
+  },
+  "include": [".storybook/**/*", "stories/**/*"]
+}
